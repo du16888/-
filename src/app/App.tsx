@@ -1813,6 +1813,290 @@ function ContractAgentPanel({ onBack, onComplete }: { onBack: () => void; onComp
   );
 }
 
+// ─── Knowledge Base Modal ─────────────────────────────────────────────────────
+interface KBTemplate {
+  icon: string; label: string; desc: string; category: "推荐模板" | "适用于团队内部协作" | "适用于企业内部公开"; tag?: string;
+}
+
+const KB_TEMPLATES: KBTemplate[] = [
+  { icon:"💡", label:"项目管理", desc:"管控项目进度、规范...", category:"推荐模板" },
+  { icon:"📋", label:"人事行政", desc:"帮助建立完善行政收...", category:"推荐模板" },
+  { icon:"📊", label:"财务会计", desc:"协同财务管理，支撑...", category:"推荐模板" },
+  { icon:"🎯", label:"产品 & 策划", desc:"为产品团队提供创造...", category:"适用于团队内部协作" },
+  { icon:"🌿", label:"HR & 招聘", desc:"企业文化、面试记录...", category:"适用于团队内部协作" },
+  { icon:"🛠️", label:"IT & 运维", desc:"快速构建公司自主知...", category:"适用于团队内部协作" },
+  { icon:"🚀", label:"研发 & 技术", desc:"从研发到技术文档沉...", category:"适用于团队内部协作" },
+  { icon:"📣", label:"市场营销", desc:"市场策划和调研并然...", category:"适用于团队内部协作" },
+  { icon:"🏠", label:"企业百科", desc:"全员可见的企业资料库", category:"适用于企业内部公开", tag:"企业内公开" },
+  { icon:"🌱", label:"规范制度", desc:"全员可见的企业规章...", category:"适用于企业内部公开", tag:"企业内公开" },
+  { icon:"🌳", label:"产品帮助", desc:"帮助用户快速上手使...", category:"适用于企业内部公开", tag:"企业内公开" },
+];
+
+const KB_BENEFITS = [
+  "统一管理企业文档与知识资产",
+  "AI 智能体可直接调用知识库内容",
+  "支持个人 & 团队协作编辑",
+  "自动关联相关文档与流程",
+  "沉淀企业 SOP 与业务知识",
+];
+
+type KBStep = "choose" | "config" | "done";
+
+function KnowledgeBaseModal({ docTitle, onClose }: { docTitle: string; onClose: () => void }) {
+  const [step, setStep] = useState<KBStep>("choose");
+  const [selected, setSelected] = useState<string | null>(null);
+  const [kbName, setKbName] = useState("");
+  const [kbDesc, setKbDesc] = useState("");
+  const [addingDoc, setAddingDoc] = useState(false);
+
+  const grouped = KB_TEMPLATES.reduce<Record<string, KBTemplate[]>>((acc, t) => {
+    (acc[t.category] ||= []).push(t); return acc;
+  }, {});
+
+  const handleNext = () => {
+    if (step === "choose") {
+      setKbName(selected ? (KB_TEMPLATES.find(t => t.label === selected)?.label ?? "") + "知识库" : "企业知识库");
+      setStep("config");
+    } else if (step === "config") {
+      setAddingDoc(true);
+      setTimeout(() => { setAddingDoc(false); setStep("done"); }, 1800);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="rounded-2xl flex overflow-hidden shadow-2xl"
+        style={{ backgroundColor: "#fff", width: 760, maxHeight: "88vh", minHeight: 480 }}>
+
+        {/* ── Left: form area ── */}
+        <div className="flex flex-col flex-1 overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center justify-between px-6 py-4 border-b shrink-0" style={{ borderColor: "#E8E9EB" }}>
+            <span className="text-base font-semibold" style={{ color: "#1F2329" }}>
+              {step === "choose" ? "新建知识库" : step === "config" ? "配置知识库" : "知识库已创建"}
+            </span>
+            <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center"
+              style={{ backgroundColor: "#F5F6F8", color: DD_GRAY }}><X size={14} /></button>
+          </div>
+
+          {/* Step: choose template */}
+          {step === "choose" && (
+            <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+              {/* Blank option */}
+              <div>
+                <div className="text-xs font-semibold mb-2" style={{ color: DD_GRAY }}>推荐模板</div>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    onClick={() => setSelected(null)}
+                    className="flex items-center gap-2 p-3 rounded-xl border-2 text-left transition-all"
+                    style={{
+                      borderColor: selected === null ? DD_BLUE : "#E8E9EB",
+                      backgroundColor: selected === null ? DD_BLUE_LIGHT : "#fff",
+                    }}>
+                    <span className="text-lg">+</span>
+                    <div>
+                      <div className="text-xs font-medium" style={{ color: "#1F2329" }}>空白知识库</div>
+                    </div>
+                  </button>
+                  {grouped["推荐模板"]?.map(t => (
+                    <button key={t.label}
+                      onClick={() => setSelected(t.label)}
+                      className="flex items-center gap-2 p-3 rounded-xl border-2 text-left transition-all"
+                      style={{
+                        borderColor: selected === t.label ? DD_BLUE : "#E8E9EB",
+                        backgroundColor: selected === t.label ? DD_BLUE_LIGHT : "#fff",
+                      }}>
+                      <span className="text-base">{t.icon}</span>
+                      <div className="min-w-0">
+                        <div className="text-xs font-medium truncate" style={{ color: "#1F2329" }}>{t.label}</div>
+                        <div className="text-[10px] truncate" style={{ color: DD_GRAY }}>{t.desc}</div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {(["适用于团队内部协作", "适用于企业内部公开"] as const).map(cat => (
+                <div key={cat}>
+                  <div className="text-xs font-semibold mb-2" style={{ color: DD_GRAY }}>{cat}</div>
+                  <div className="grid grid-cols-3 gap-2">
+                    {grouped[cat]?.map(t => (
+                      <button key={t.label}
+                        onClick={() => setSelected(t.label)}
+                        className="flex items-center gap-2 p-3 rounded-xl border-2 text-left transition-all"
+                        style={{
+                          borderColor: selected === t.label ? DD_BLUE : "#E8E9EB",
+                          backgroundColor: selected === t.label ? DD_BLUE_LIGHT : "#fff",
+                        }}>
+                        <span className="text-base">{t.icon}</span>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1 flex-wrap">
+                            <span className="text-xs font-medium" style={{ color: "#1F2329" }}>{t.label}</span>
+                            {t.tag && <span className="text-[9px] px-1 rounded" style={{ backgroundColor: "#EBF2FF", color: DD_BLUE }}>{t.tag}</span>}
+                          </div>
+                          <div className="text-[10px] truncate" style={{ color: DD_GRAY }}>{t.desc}</div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+              <div className="text-xs" style={{ color: DD_GRAY }}>
+                没找到想要的模板？<span className="cursor-pointer" style={{ color: DD_BLUE }}>去反馈</span>
+              </div>
+            </div>
+          )}
+
+          {/* Step: config */}
+          {step === "config" && (
+            <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+              <div className="rounded-xl p-3 flex items-start gap-2" style={{ backgroundColor: DD_BLUE_LIGHT, border: `1px solid ${DD_BLUE}30` }}>
+                <Zap size={13} className="shrink-0 mt-0.5" style={{ color: DD_BLUE }} />
+                <p className="text-xs leading-relaxed" style={{ color: DD_BLUE }}>
+                  将「<strong>{docTitle}</strong>」纳入知识库后，AI 智能体可直接检索和引用其内容，用于问答、任务分析和报告生成。
+                </p>
+              </div>
+              <div>
+                <label className="text-xs font-medium block mb-1.5" style={{ color: "#1F2329" }}>知识库名称</label>
+                <input
+                  className="w-full rounded-xl px-3 py-2 text-sm outline-none"
+                  style={{ border: "1px solid #E8E9EB", color: "#1F2329" }}
+                  value={kbName}
+                  onChange={e => setKbName(e.target.value)}
+                  placeholder="请输入知识库名称" />
+              </div>
+              <div>
+                <label className="text-xs font-medium block mb-1.5" style={{ color: "#1F2329" }}>描述（可选）</label>
+                <textarea rows={2}
+                  className="w-full rounded-xl px-3 py-2 text-sm outline-none resize-none"
+                  style={{ border: "1px solid #E8E9EB", color: "#1F2329" }}
+                  value={kbDesc}
+                  onChange={e => setKbDesc(e.target.value)}
+                  placeholder="描述这个知识库的用途..." />
+              </div>
+              <div>
+                <div className="text-xs font-medium mb-2" style={{ color: "#1F2329" }}>初始收录文档</div>
+                <div className="flex items-center gap-3 p-3 rounded-xl" style={{ border: "1px solid #E8E9EB", backgroundColor: "#F8F9FB" }}>
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor: DD_BLUE_LIGHT }}>
+                    <FileText size={14} style={{ color: DD_BLUE }} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium truncate" style={{ color: "#1F2329" }}>{docTitle}</div>
+                    <div className="text-xs mt-0.5" style={{ color: DD_GRAY }}>当前文档 · 自动收录</div>
+                  </div>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ backgroundColor: "#F6FFED", color: DD_GREEN }}>已选</span>
+                </div>
+              </div>
+              <div>
+                <div className="text-xs font-medium mb-2" style={{ color: "#1F2329" }}>AI 智能体权限</div>
+                <div className="space-y-2">
+                  {["邻里AI全能助手", "合同智能体", "仪容仪表助理"].map((agent, i) => (
+                    <div key={agent} className="flex items-center justify-between px-3 py-2 rounded-xl"
+                      style={{ border: "1px solid #E8E9EB", backgroundColor: "#fff" }}>
+                      <div className="flex items-center gap-2">
+                        <div className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[9px] font-bold"
+                          style={{ backgroundColor: [DD_BLUE, "#722ED1", "#FA8C16"][i] }}>AI</div>
+                        <span className="text-xs" style={{ color: "#1F2329" }}>{agent}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-8 h-4 rounded-full flex items-center relative cursor-pointer"
+                          style={{ backgroundColor: DD_GREEN }}>
+                          <div className="absolute right-0.5 w-3 h-3 rounded-full bg-white shadow-sm" />
+                        </div>
+                        <span className="text-[10px]" style={{ color: DD_GREEN }}>可读取</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {addingDoc && (
+                <div className="flex items-center gap-2 py-2">
+                  <div className="w-4 h-4 border-2 rounded-full animate-spin shrink-0" style={{ borderColor: `${DD_BLUE}30`, borderTopColor: DD_BLUE }} />
+                  <span className="text-xs" style={{ color: DD_BLUE }}>正在创建知识库并收录文档...</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Step: done */}
+          {step === "done" && (
+            <div className="flex-1 flex flex-col items-center justify-center gap-4 px-8 py-6">
+              <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ backgroundColor: "#F6FFED" }}>
+                <span style={{ fontSize: 32 }}>✅</span>
+              </div>
+              <div className="text-center space-y-1.5">
+                <div className="text-base font-semibold" style={{ color: "#1F2329" }}>知识库已创建成功</div>
+                <p className="text-xs" style={{ color: DD_GRAY }}>「{kbName || "企业知识库"}」已建立，文档已收录，AI 智能体现可读取调用</p>
+              </div>
+              <div className="w-full rounded-xl p-4 space-y-2" style={{ backgroundColor: "#F6FFED", border: "1px solid #52C41A30" }}>
+                {[
+                  ["知识库名称", kbName || "企业知识库"],
+                  ["已收录文档", "1 篇"],
+                  ["可调用智能体", "3 个"],
+                  ["状态", "已启用"],
+                ].map(([l, v]) => (
+                  <div key={l} className="flex items-center justify-between">
+                    <span className="text-xs" style={{ color: DD_GRAY }}>{l}</span>
+                    <span className="text-xs font-medium" style={{ color: "#1F2329" }}>{v}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-3 w-full">
+                <button onClick={onClose}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-medium"
+                  style={{ backgroundColor: "#F5F6F8", color: DD_GRAY }}>
+                  关闭
+                </button>
+                <button onClick={onClose}
+                  className="flex-1 py-2.5 rounded-xl text-sm font-medium text-white"
+                  style={{ backgroundColor: DD_BLUE }}>
+                  进入知识库
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Footer */}
+          {step !== "done" && (
+            <div className="flex items-center justify-end gap-3 px-6 py-4 border-t shrink-0" style={{ borderColor: "#E8E9EB" }}>
+              <button onClick={onClose}
+                className="px-4 py-2 rounded-xl text-sm font-medium"
+                style={{ backgroundColor: "#F5F6F8", color: DD_GRAY }}>
+                取消
+              </button>
+              <button onClick={handleNext} disabled={addingDoc}
+                className="px-6 py-2 rounded-xl text-sm font-medium text-white"
+                style={{ backgroundColor: addingDoc ? "#93C5FD" : DD_BLUE }}>
+                {step === "choose" ? "下一步" : addingDoc ? "创建中..." : "创建知识库"}
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* ── Right: info panel ── */}
+        <div className="w-56 shrink-0 flex flex-col p-5 gap-3 border-l" style={{ backgroundColor: "#F8F9FB", borderColor: "#E8E9EB" }}>
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: DD_BLUE_LIGHT }}>
+            <span style={{ fontSize: 22 }}>✅</span>
+          </div>
+          <div>
+            <div className="text-sm font-semibold mb-1" style={{ color: "#1F2329" }}>知识库</div>
+            <p className="text-xs leading-relaxed" style={{ color: DD_GRAY }}>邀请团队成员一起创作和交流知识</p>
+          </div>
+          <div className="space-y-1.5 mt-1">
+            {KB_BENEFITS.map(b => (
+              <div key={b} className="flex items-start gap-2">
+                <div className="w-1.5 h-1.5 rounded-full mt-1.5 shrink-0" style={{ backgroundColor: DD_BLUE }} />
+                <span className="text-xs leading-relaxed" style={{ color: DD_GRAY }}>{b}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── 消息页 ──────────────────────────────────────────────────────────────────
 const msgList = [
   { id:"msg1", name:"悟空间反馈群", avatar:"悟", avatarBg:"#722ED1", time:"17:04", preview:"[36条]王郑广: 有邀请码可以分...", unread:36, tags:["外部群","话题圈"] },
@@ -2164,9 +2448,11 @@ const ddDocFiles = [
 
 function DDDocsPage() {
   const [activeTab, setActiveTab] = useState("最近");
+  const [kbDoc, setKbDoc] = useState<string | null>(null);
   const tabs = ["最近","收藏","与我共享","我共享的","未读文档"];
   return (
     <div className="flex flex-1 overflow-hidden" style={{ backgroundColor:"#fff" }}>
+      {kbDoc && <KnowledgeBaseModal docTitle={kbDoc} onClose={() => setKbDoc(null)} />}
       {/* Left sidebar */}
       <div className="flex flex-col shrink-0 border-r py-3 gap-1" style={{ width:180, borderColor:"#E8E9EB" }}>
         {/* Header */}
@@ -2201,7 +2487,7 @@ function DDDocsPage() {
               <span>📚</span><span className="flex-1">知识库</span><span style={{ fontSize:10 }}>⌃</span>
             </button>
             <div className="ml-4 mt-0.5">
-              <button className="flex items-center gap-1 text-xs px-2 py-1" style={{ color:DD_GRAY }}>
+              <button onClick={() => setKbDoc("新建")} className="flex items-center gap-1 text-xs px-2 py-1" style={{ color:DD_BLUE }}>
                 <Plus size={10} />新建知识库
               </button>
             </div>
@@ -2271,7 +2557,7 @@ function DDDocsPage() {
                 <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ backgroundColor:iconBg }}>
                   <FileText size={16} style={{ color:iconColor }} />
                 </div>
-                <div className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0" onClick={() => setKbDoc(f.title)}>
                   <div className="text-sm font-medium truncate" style={{ color:"#1F2329" }}>{f.title}</div>
                   <div className="text-xs mt-0.5 truncate" style={{ color:DD_GRAY }}>{f.path}</div>
                 </div>
@@ -2280,7 +2566,11 @@ function DDDocsPage() {
                   {f.updated}
                   {f.shared && <span style={{ color:DD_BLUE, fontSize:14 }}>⬆</span>}
                 </div>
-                <button style={{ color:DD_GRAY }}>···</button>
+                <button onClick={() => setKbDoc(f.title)}
+                  className="text-xs px-2 py-1 rounded-lg border transition-colors hover:border-blue-400"
+                  style={{ color: DD_BLUE, borderColor: `${DD_BLUE}50`, backgroundColor: DD_BLUE_LIGHT, whiteSpace: "nowrap" }}>
+                  + 知识库
+                </button>
               </div>
             );
           })}
