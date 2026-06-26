@@ -2178,6 +2178,7 @@ export default function App() {
   const [subCat, setSubCat] = useState<Record<string, string>>({ 日程:"全部", 任务:"全部", 公告:"全部", 审批:"全部" });
   const [selectedSchedule, setSelectedSchedule] = useState<Schedule|null>(null);
   const [aiUnread, setAiUnread] = useState(false);
+  const [scheduleAlertVisible, setScheduleAlertVisible] = useState(false);
   const [urgentPopupVisible, setUrgentPopupVisible] = useState(false);
   const [showProjectEntryCard, setShowProjectEntryCard] = useState(false);
   const [completedCards, setCompletedCards] = useState<Set<string>>(new Set());
@@ -2199,8 +2200,8 @@ export default function App() {
 
   const completeCard = (id: string) => { setCompletedCards(prev => new Set([...prev, id])); setDetailTask(null); };
 
-  const urgentVisible = ["mc-morning", ...(showProjectEntryCard ? ["mc-project-entry"] : []), "mc-t1"].filter(id => !completedCards.has(id));
-  const todayVisible  = ["mc-schedule", "mc-inspection"].filter(id => !completedCards.has(id));
+  const urgentVisible = [...(showProjectEntryCard ? ["mc-project-entry"] : []), "mc-t1"].filter(id => !completedCards.has(id));
+  const todayVisible  = ["mc-inspection"].filter(id => !completedCards.has(id));
   const followVisible = ["mc-announcement", "mc-t6", "mc-q2-approval"].filter(id => !completedCards.has(id));
   const totalVisible  = urgentVisible.length + todayVisible.length + followVisible.length;
 
@@ -2383,26 +2384,6 @@ export default function App() {
                   <span className="text-[11px] font-bold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor:DD_RED }}>立即处理</span>
                   <span className="text-[10px]" style={{ color:DD_GRAY }}>{urgentVisible.length}件 · 今日截止或超期</span>
                 </div>
-                {/* 晨会 */}
-                {!completedCards.has("mc-morning") && (
-                <div onClick={() => setSelectedSchedule(schedules.find(s=>s.id==="sc1")||null)}
-                  className="bg-white rounded-xl p-3 mb-2 shadow-sm cursor-pointer"
-                  style={{ border:"1px solid #FFD6D6", borderLeft:`3px solid ${DD_RED}` }}>
-                  <div className="flex items-start gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 mb-1.5">
-                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded" style={{ backgroundColor:DD_RED_LIGHT, color:DD_RED }}>日程</span>
-                        <span className="text-[10px] font-medium" style={{ color:DD_RED }}>08:30 · 即将开始</span>
-                      </div>
-                      <p className="text-sm font-semibold leading-snug mb-1" style={{ color:"#1F2329" }}>时代云图（佛山）二期项目晨会</p>
-                      <p className="text-xs leading-relaxed" style={{ color:DD_GRAY }}>📍 物业服务中心 · AI提示：重点检查昨日待办落实及仪容仪表</p>
-                    </div>
-                    <button onClick={e => { e.stopPropagation(); setSelectedSchedule(schedules.find(s=>s.id==="sc1")||null); }}
-                      className="shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-medium text-white self-center"
-                      style={{ backgroundColor:DD_RED }}>去处理</button>
-                  </div>
-                </div>
-                )}
                 {/* 项目进场任务 - 动态出现 */}
                 {showProjectEntryCard && !completedCards.has("mc-project-entry") && (
                 <div onClick={() => setDetailTask(tasks.find(t=>t.id==="t3")||null)}
@@ -2452,26 +2433,6 @@ export default function App() {
                   <span className="text-[11px] font-bold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor:DD_ORANGE }}>今日完成</span>
                   <span className="text-[10px]" style={{ color:DD_GRAY }}>{todayVisible.length}件 · 今日安排</span>
                 </div>
-                {/* 其他日程 */}
-                {!completedCards.has("mc-schedule") && (
-                <div onClick={() => setSelectedSchedule(schedules.find(s=>s.id==="sc2")||null)}
-                  className="bg-white rounded-xl p-3 mb-2 shadow-sm cursor-pointer"
-                  style={{ border:"1px solid #FFE7BA", borderLeft:`3px solid ${DD_ORANGE}` }}>
-                  <div className="flex items-start gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 mb-1.5">
-                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded" style={{ backgroundColor:DD_ORANGE_LIGHT, color:DD_ORANGE }}>日程</span>
-                        <span className="text-[10px] font-medium" style={{ color:DD_ORANGE }}>10:00 · 今日</span>
-                      </div>
-                      <p className="text-sm font-semibold leading-snug mb-1" style={{ color:"#1F2329" }}>项目区域重点工作跟进情况</p>
-                      <p className="text-xs leading-relaxed" style={{ color:DD_GRAY }}>📍 会议室A · AI提示：重点落实大管家客诉与工单响应情况</p>
-                    </div>
-                    <button onClick={e => { e.stopPropagation(); setSelectedSchedule(schedules.find(s=>s.id==="sc2")||null); }}
-                      className="shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-medium text-white self-center"
-                      style={{ backgroundColor:DD_ORANGE }}>去处理</button>
-                  </div>
-                </div>
-                )}
                 {/* 网格化巡检 */}
                 {!completedCards.has("mc-inspection") && (
                 <div onClick={() => setDetailTask(tasks.find(t=>t.id==="t4")||null)}
@@ -2666,6 +2627,48 @@ export default function App() {
   return (
     <div className="h-screen w-screen flex flex-col overflow-hidden" style={{ fontFamily:"'Noto Sans SC', system-ui, sans-serif" }}>
 
+      {/* ─── Schedule Alert Modal ────────────────────────────────────── */}
+      {scheduleAlertVisible && (
+        <div className="fixed inset-0 z-[500] flex items-center justify-center"
+          style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
+          onClick={() => setScheduleAlertVisible(false)}>
+          <div className="rounded-2xl overflow-hidden shadow-2xl w-72"
+            style={{ backgroundColor: "#fff" }}
+            onClick={e => e.stopPropagation()}>
+            <div className="px-4 py-3 flex items-center gap-2" style={{ backgroundColor: DD_RED }}>
+              <Calendar size={16} className="text-white" />
+              <span className="text-sm font-bold text-white">日程提醒</span>
+            </div>
+            <div className="px-5 py-5 flex flex-col items-center gap-3 text-center">
+              <div className="w-14 h-14 rounded-full flex items-center justify-center"
+                style={{ backgroundColor: DD_RED_LIGHT }}>
+                <span className="text-2xl font-bold" style={{ color: DD_RED }}>{schedules.length}</span>
+              </div>
+              <div>
+                <p className="text-base font-semibold" style={{ color: "#1F2329" }}>
+                  您有 <span style={{ color: DD_RED }}>{schedules.length} 个</span>日程待处理
+                </p>
+                <p className="text-xs mt-1" style={{ color: DD_GRAY }}>
+                  包含 {schedules.filter(s => s.category === "会议").length} 个会议、{schedules.filter(s => s.category !== "会议").length} 个提醒
+                </p>
+              </div>
+              <div className="flex gap-2 w-full mt-1">
+                <button onClick={() => setScheduleAlertVisible(false)}
+                  className="flex-1 py-2 rounded-xl text-sm font-medium"
+                  style={{ backgroundColor: "#F5F6F8", color: DD_GRAY }}>
+                  稍后查看
+                </button>
+                <button onClick={() => { setScheduleAlertVisible(false); setDdNav("日程"); }}
+                  className="flex-1 py-2 rounded-xl text-sm font-medium text-white"
+                  style={{ backgroundColor: DD_RED }}>
+                  立即查看
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ─── DingTalk Title Bar ─────────────────────────────────────── */}
       <div className="flex items-center h-9 shrink-0 px-3 gap-3 select-none" style={{ backgroundColor:"#D5DFF7" }}>
         <div className="flex items-center gap-2 shrink-0">
@@ -2693,14 +2696,26 @@ export default function App() {
         <div className="flex flex-col items-center pt-3 pb-3 gap-0.5 shrink-0" style={{ width:64, backgroundColor:"#D5DFF7" }}>
           <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold mb-3" style={{ backgroundColor:DD_BLUE }}>项</div>
           {ddNavItems.map(item => (
-            <button key={item.key} onClick={() => setDdNav(item.key)}
-              className="flex flex-col items-center gap-0.5 w-full py-2 px-1 transition-colors"
+            <button key={item.key} onClick={() => {
+              if (item.key === "日程") {
+                setScheduleAlertVisible(true);
+              } else {
+                setDdNav(item.key);
+              }
+            }}
+              className="flex flex-col items-center gap-0.5 w-full py-2 px-1 transition-colors relative"
               style={{
                 color: ddNav === item.key ? '#2D2F33' : '#5E6678',
                 backgroundColor: ddNav === item.key ? '#E3E9F9' : 'transparent',
               }}>
               {item.icon}
               <span className="text-[10px] leading-none mt-0.5">{item.label}</span>
+              {item.key === "日程" && (
+                <span className="absolute top-1 right-2.5 min-w-[14px] h-3.5 rounded-full flex items-center justify-center text-white font-bold"
+                  style={{ backgroundColor: DD_RED, fontSize: 9, padding: "0 2px" }}>
+                  {schedules.length}
+                </span>
+              )}
             </button>
           ))}
         </div>
