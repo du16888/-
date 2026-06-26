@@ -2099,27 +2099,39 @@ function KnowledgeBaseModal({ docTitle, onClose }: { docTitle: string; onClose: 
 
 // ─── 消息页 ──────────────────────────────────────────────────────────────────
 const msgList = [
-  { id:"msg1", name:"悟空间反馈群", avatar:"悟", avatarBg:"#722ED1", time:"17:04", preview:"[36条]王郑广: 有邀请码可以分...", unread:36, tags:["外部群","话题圈"] },
-  { id:"msg2", name:"标签语音录入助手", avatar:"标", avatarBg:"#FA8C16", time:"11:17", preview:"聊聊新话题", selected:true },
-  { id:"msg3", name:"钉钉运动", avatar:"动", avatarBg:"#52C41A", time:"昨天", preview:"[2条] 🌸不走也无妨，我在风里...", unread:2 },
-  { id:"msg4", name:"工作通知:广州市时代邻里邦...", avatar:"工", avatarBg:"#1890FF", time:"06-22", preview:"宜搭低代码快报" },
-  { id:"msg5", name:"AI表格", avatar:"表", avatarBg:"#337EFF", time:"06-22", preview:"用量预警 🔥" },
-  { id:"msg6", name:"AI听记助手", avatar:"听", avatarBg:"#722ED1", time:"06-22", preview:"你有一篇新AI听记生成" },
-  { id:"msg7", name:"时代邻里沟通群", avatar:"邻", avatarBg:"#1890FF", time:"06-18", preview:"肖新和: AI硬件背后就是这个软...", tags:["外部群"] },
-  { id:"msg8", name:"项目跟进看板", avatar:"看", avatarBg:"#52C41A", time:"06-18", preview:"[交互卡片消息]", isBot:true },
-  { id:"msg9", name:"时代邻里&钉钉沟通群", avatar:"联", avatarBg:"#722ED1", time:"06-16", preview:"王琳: [钉钉文档] AI听记开放接口", tags:["外部群"] },
-  { id:"msg10", name:"悟空-LINLIZ-MP1Y...", avatar:"悟", avatarBg:"#8F959E", time:"06-15", preview:"回复", isBot:true },
-  { id:"msg11", name:"肖新和", avatar:"肖", avatarBg:"#FA8C16", time:"06-12", preview:"[文件]" },
+  { id:"msg1", name:"时代云图（佛山）二期工作交流群", avatar:"云", avatarBg:"#337EFF", time:"10:03", preview:"AI助理: ✅ 工单已更新为「处理中」预计...", unread:3, selected:true, tags:["工作群"] },
+  { id:"msg2", name:"时代邻里物管客服群", avatar:"客", avatarBg:"#52C41A", time:"09:10", preview:"王芳: 03栋1203业主噪音投诉已处理完毕", tags:["工作群"] },
+  { id:"msg3", name:"工程维修组", avatar:"工", avatarBg:"#1890FF", time:"09:05", preview:"张伟: 本周电梯维保计划已排好，请查收" },
+  { id:"msg4", name:"品质巡检通报", avatar:"品", avatarBg:"#FA8C16", time:"昨天", preview:"[巡检报告] 6月24日品质检查结果已发布", tags:["系统通知"] },
+  { id:"msg5", name:"物业费催缴提醒", avatar:"费", avatarBg:"#FF4D4F", time:"昨天", preview:"催费任务进展：已跟进38户，12户已缴费" },
+  { id:"msg6", name:"供应商管理群", avatar:"供", avatarBg:"#722ED1", time:"06-24", preview:"[审批] 供应商B续签合同待您审批" },
+  { id:"msg7", name:"人事行政通知", avatar:"人", avatarBg:"#13C2C2", time:"06-23", preview:"6月考勤汇总已发布，请各部门核对" },
+  { id:"msg8", name:"AI邻里助手", avatar:"AI", avatarBg:"#337EFF", time:"06-22", preview:"Q2季度报告大纲已完成，财务板块数据...", isBot:true },
+  { id:"msg9", name:"项目经理工作群", avatar:"管", avatarBg:"#8F959E", time:"06-20", preview:"陈经理: 下周二项目例会请准时参加" },
 ];
 
-const chatBubbles = [
-  { id:"cb1", type:"system", text:"2月1日 15:37" },
-  { id:"cb2", type:"bot", text:"你好，我是标签录入助手，你可以直接点击语音直接和我对话，简单描述，我会自动记录标签信息，并同步到业主画像中。", time:"" },
-  { id:"cb3", type:"system", text:"2月26日 14:36" },
-  { id:"cb4", type:"system2", text:"聊聊新话题" },
-  { id:"cb5", type:"bot", text:"你好，我是标签录入助手，你可以直接点击语音直接和我对话，简单描述，我会自动记录标签信息，并同步到业主画像中。", time:"" },
-  { id:"cb6", type:"system", text:"今天 11:17" },
-  { id:"cb7", type:"system2", text:"聊聊新话题" },
+const groupMessages = [
+  { id:"gm1", type:"system", text:"今天 09:15" },
+  { id:"gm2", type:"other", sender:"李晓梅", role:"管家", avatar:"梅", avatarBg:"#52C41A",
+    text:"各位，我刚完成03栋大堂巡检，发现天花板瓷砖有渗水情况，水迹已扩散约半平方，已拍照记录，请工程组安排查看 📸", time:"09:15" },
+  { id:"gm3", type:"image", sender:"李晓梅", role:"管家", avatar:"梅", avatarBg:"#52C41A", time:"09:15" },
+  { id:"gm4", type:"bot", sender:"AI邻里助手", avatar:"AI", avatarBg:"#337EFF",
+    text:"⚡ 检测到维修事件，正在自动生成工单...", time:"09:16" },
+  { id:"gm5", type:"card", sender:"AI邻里助手", avatar:"AI", avatarBg:"#337EFF", time:"09:16",
+    card:{ no:"WO-20260625-047", location:"时代云图（佛山）二期 · 03栋大堂", issue:"天花板瓷砖渗水", type:"工程维修", priority:"紧急", assignee:"张伟（工程组）", status:"待处理" } },
+  { id:"gm6", type:"bot", sender:"AI邻里助手", avatar:"AI", avatarBg:"#337EFF",
+    text:"@张伟 您好，03栋大堂天花板发现渗水，工单编号 WO-20260625-047，优先级：紧急，请尽快前往现场查看并在工单内更新处理进度。", time:"09:16" },
+  { id:"gm7", type:"other", sender:"张伟", role:"工程", avatar:"工", avatarBg:"#1890FF",
+    text:"收到！我10分钟内到现场 👷", time:"09:18" },
+  { id:"gm8", type:"other", sender:"陈经理", role:"项目经理", avatar:"陈", avatarBg:"#722ED1",
+    text:"好的，今天内必须处理完毕，进展及时在群里同步", time:"09:20" },
+  { id:"gm9", type:"other", sender:"王芳", role:"客助", avatar:"客", avatarBg:"#FA8C16",
+    text:"我已电话通知03栋受影响楼层业主，做好解释安抚工作 👌", time:"09:22" },
+  { id:"gm10", type:"system", text:"10:02" },
+  { id:"gm11", type:"other", sender:"张伟", role:"工程", avatar:"工", avatarBg:"#1890FF",
+    text:"已到现场，确认是1-2层之间管道破损渗水，已联系专业维修人员，预计今天下午3点前完成修复，修复后拍照上传工单。", time:"10:02" },
+  { id:"gm12", type:"bot", sender:"AI邻里助手", avatar:"AI", avatarBg:"#337EFF",
+    text:"✅ 工单 WO-20260625-047 状态已更新为「处理中」，预计完成时间：今天 15:00，已同步至物业管理系统并推送业主通知。", time:"10:03" },
 ];
 
 function DDMsgPage() {
@@ -2127,23 +2139,21 @@ function DDMsgPage() {
     <div className="flex flex-1 overflow-hidden" style={{ backgroundColor:"#fff" }}>
       {/* Left: conversation list */}
       <div className="flex flex-col shrink-0 overflow-hidden" style={{ width:280, borderRight:"1px solid #E8E9EB" }}>
-        {/* Tabs */}
         <div className="flex items-center gap-4 px-4 py-2.5 border-b shrink-0" style={{ borderColor:"#E8E9EB" }}>
           <span className="text-sm font-semibold border-b-2 pb-1.5" style={{ color:"#1F2329", borderColor:"#1F2329" }}>消息</span>
           <span className="text-sm pb-1.5" style={{ color:DD_GRAY }}>未读</span>
         </div>
-        {/* List */}
         <div className="flex-1 overflow-y-auto">
           {msgList.map(m => (
             <div key={m.id} className="flex items-start gap-3 px-4 py-2.5 cursor-pointer"
-              style={{ backgroundColor: m.selected ? "#F0F4FF" : "transparent" }}>
+              style={{ backgroundColor: m.selected ? "#EBF2FF" : "transparent" }}>
               <div className="relative shrink-0 mt-0.5">
-                <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white text-xs font-bold"
                   style={{ backgroundColor: m.avatarBg }}>{m.avatar}</div>
                 {m.isBot && (
                   <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-white flex items-center justify-center">
-                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor:"#8F959E" }}>
-                      <span style={{ fontSize:6, color:"#fff", display:"flex", alignItems:"center", justifyContent:"center", height:"100%" }}>机</span>
+                    <div className="w-2.5 h-2.5 rounded-full flex items-center justify-center" style={{ backgroundColor:"#337EFF" }}>
+                      <span style={{ fontSize:5, color:"#fff" }}>AI</span>
                     </div>
                   </div>
                 )}
@@ -2152,7 +2162,7 @@ function DDMsgPage() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-1 mb-0.5">
                   <div className="flex items-center gap-1 min-w-0">
-                    <span className="text-xs font-medium truncate" style={{ color:"#1F2329", maxWidth:120 }}>{m.name}</span>
+                    <span className="text-xs font-medium truncate" style={{ color:"#1F2329", maxWidth:130 }}>{m.name}</span>
                     {m.tags?.map(tag => (
                       <span key={tag} className="shrink-0 text-[9px] px-1 py-0.5 rounded border" style={{ color:"#8F959E", borderColor:"#D8D8D8", lineHeight:1 }}>{tag}</span>
                     ))}
@@ -2166,59 +2176,118 @@ function DDMsgPage() {
         </div>
       </div>
 
-      {/* Right: chat detail */}
+      {/* Right: group chat detail */}
       <div className="flex flex-col flex-1 overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-2.5 border-b shrink-0" style={{ borderColor:"#E8E9EB" }}>
           <div>
-            <div className="text-sm font-semibold" style={{ color:"#1F2329" }}>标签语音录入助手</div>
-            <div className="text-xs" style={{ color:DD_GRAY }}>广州市时代邻里邦网络科技有限公司</div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-semibold" style={{ color:"#1F2329" }}>时代云图（佛山）二期工作交流群</span>
+              <span className="text-xs px-1.5 py-0.5 rounded" style={{ color:DD_BLUE, backgroundColor:DD_BLUE_LIGHT }}>工作群</span>
+            </div>
+            <div className="text-xs mt-0.5" style={{ color:DD_GRAY }}>管家 · 工程 · 客助 · 保洁 · 项目经理 · AI助理，共6人</div>
           </div>
           <div className="flex items-center gap-2">
-            <button className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg border" style={{ color:"#1F2329", borderColor:"#D8D8D8" }}>
-              <Plus size={11} />开启新话题
-            </button>
-            <button style={{ color:DD_GRAY }}>···</button>
+            <button style={{ color:DD_GRAY, fontSize:18 }}>···</button>
           </div>
         </div>
-        {/* Chat bubbles */}
-        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4" style={{ backgroundColor:"#F5F6F8" }}>
-          {chatBubbles.map(b => (
-            <div key={b.id}>
-              {b.type === "system" && (
-                <div className="text-center text-xs py-1" style={{ color:DD_GRAY }}>{b.text}</div>
-              )}
-              {b.type === "system2" && (
-                <div className="text-center">
-                  <span className="text-xs px-3 py-1 rounded-full" style={{ color:DD_GRAY, backgroundColor:"#EBEDF0" }}>{b.text}</span>
-                </div>
-              )}
-              {b.type === "bot" && (
-                <div className="flex items-start gap-3">
-                  <div className="w-9 h-9 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0" style={{ backgroundColor:"#FA8C16" }}>标</div>
-                  <div className="max-w-[70%]">
-                    <div className="rounded-2xl px-4 py-3 text-sm leading-relaxed" style={{ backgroundColor:"#fff", color:"#1F2329", boxShadow:"0 1px 3px rgba(0,0,0,0.08)", borderRadius:"4px 16px 16px 16px" }}>
-                      🤝 {b.text}
-                    </div>
+
+        {/* Chat messages */}
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3" style={{ backgroundColor:"#F5F6F8" }}>
+          {groupMessages.map(msg => {
+            if (msg.type === "system") {
+              return (
+                <div key={msg.id} className="text-center text-[11px] py-1" style={{ color:DD_GRAY }}>{msg.text}</div>
+              );
+            }
+
+            if (msg.type === "image") {
+              return (
+                <div key={msg.id} className="flex items-start gap-2.5 pl-11">
+                  <div className="rounded-xl overflow-hidden flex items-center justify-center text-3xl"
+                    style={{ width:120, height:90, backgroundColor:"#E8E9EB", border:"1px solid #D8D8D8" }}>
+                    📷
                   </div>
                 </div>
-              )}
-            </div>
-          ))}
+              );
+            }
+
+            const isBot = msg.type === "bot" || msg.type === "card";
+            const bubbleBg = isBot ? "#fff" : "#fff";
+            const borderRadius = "4px 14px 14px 14px";
+
+            return (
+              <div key={msg.id} className="flex items-start gap-2.5">
+                {/* Avatar */}
+                <div className="w-8 h-8 rounded-xl flex items-center justify-center text-white text-[11px] font-bold shrink-0 mt-0.5"
+                  style={{ backgroundColor: msg.avatarBg }}>
+                  {msg.avatar}
+                </div>
+
+                <div className="flex flex-col gap-0.5 max-w-[72%]">
+                  {/* Sender name + role */}
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <span className="text-[11px] font-medium" style={{ color:"#1F2329" }}>{msg.sender}</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded" style={{
+                      color: isBot ? DD_BLUE : "#666",
+                      backgroundColor: isBot ? DD_BLUE_LIGHT : "#EBEDF0"
+                    }}>{isBot ? "AI助理" : msg.role}</span>
+                    <span className="text-[10px]" style={{ color:DD_GRAY }}>{msg.time}</span>
+                  </div>
+
+                  {msg.type === "card" ? (
+                    /* Work order card */
+                    <div className="rounded-xl overflow-hidden" style={{ border:"1px solid #E8E9EB", backgroundColor:"#fff", boxShadow:"0 1px 4px rgba(0,0,0,0.06)" }}>
+                      <div className="px-3 py-2 flex items-center gap-2" style={{ backgroundColor:DD_BLUE }}>
+                        <span style={{ fontSize:13 }}>📋</span>
+                        <span className="text-xs font-semibold text-white">工单已生成</span>
+                        <span className="ml-auto text-[10px] text-white opacity-80">{msg.card?.no}</span>
+                      </div>
+                      <div className="px-3 py-2.5 space-y-1.5">
+                        {[
+                          { label:"位置", value: msg.card?.location },
+                          { label:"问题", value: msg.card?.issue },
+                          { label:"类型", value: msg.card?.type },
+                          { label:"负责人", value: msg.card?.assignee },
+                        ].map(row => (
+                          <div key={row.label} className="flex items-center gap-2">
+                            <span className="text-[11px] w-10 shrink-0" style={{ color:DD_GRAY }}>{row.label}</span>
+                            <span className="text-[11px]" style={{ color:"#1F2329" }}>{row.value}</span>
+                          </div>
+                        ))}
+                        <div className="flex items-center gap-2 pt-0.5">
+                          <span className="text-[11px] w-10 shrink-0" style={{ color:DD_GRAY }}>优先级</span>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded font-medium" style={{ color:DD_RED, backgroundColor:"#FFF1F0" }}>紧急</span>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded font-medium ml-1" style={{ color:DD_GRAY, backgroundColor:"#F5F6F8" }}>待处理</span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    /* Text bubble */
+                    <div className="px-3 py-2 text-xs leading-relaxed" style={{
+                      backgroundColor: bubbleBg,
+                      color:"#1F2329",
+                      borderRadius,
+                      boxShadow:"0 1px 3px rgba(0,0,0,0.07)",
+                      border: isBot ? `1px solid ${DD_BLUE}20` : "1px solid transparent",
+                    }}>
+                      {msg.text}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
+
         {/* Input bar */}
         <div className="px-4 py-3 border-t shrink-0" style={{ backgroundColor:"#fff", borderColor:"#E8E9EB" }}>
           <div className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ border:"1px solid #E8E9EB", backgroundColor:"#F5F6F8" }}>
-            <input className="flex-1 bg-transparent text-sm outline-none" placeholder="有问题尽管问我..." style={{ color:"#1F2329" }} />
+            <input className="flex-1 bg-transparent text-xs outline-none" placeholder="发送消息..." style={{ color:"#1F2329" }} />
             <div className="flex items-center gap-2" style={{ color:DD_GRAY }}>
-              <span style={{ fontSize:14 }}>🔍</span>
-              <span style={{ fontSize:14 }}>✏️</span>
-              <span style={{ fontSize:14 }}>⬆️</span>
-              <span style={{ fontSize:14 }}>📎</span>
+              <Paperclip size={14} />
+              <Mic size={14} />
             </div>
-          </div>
-          <div className="text-xs mt-1 flex items-center gap-1" style={{ color:DD_GRAY }}>
-            <span>⚡</span><span>深度思考</span>
           </div>
         </div>
       </div>
