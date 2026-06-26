@@ -524,6 +524,198 @@ function WorkOrderModal({ task, onClose, onInspectionDone, onComplete }: { task:
   );
 }
 
+// ─── BPM Approval Modal ───────────────────────────────────────────────────────
+function BpmApprovalModal({ onClose, onComplete }: { onClose: () => void; onComplete: () => void }) {
+  const [rejecting, setRejecting] = useState(false);
+  const [rejectComment, setRejectComment] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+  const [submitType, setSubmitType] = useState<"approve" | "reject" | null>(null);
+
+  const handleApprove = () => { setSubmitType("approve"); setSubmitted(true); };
+
+  const handleRejectConfirm = () => {
+    if (!rejectComment.trim()) return;
+    setSubmitType("reject");
+    setSubmitted(true);
+  };
+
+  const APPLY_INFO: [string, string][] = [
+    ["申请人", "李先生（B区24栋802）"],
+    ["申请类型", "普通装修"],
+    ["申请日期", "2026-06-24"],
+    ["发起管家", "张小华"],
+    ["装修时限", "2026-07-01 至 2026-09-30"],
+  ];
+
+  const RENO_DETAIL: [string, string][] = [
+    ["装修范围", "室内全屋装修"],
+    ["施工区域", "客厅、主卧、次卧、厨房、卫生间"],
+    ["施工时段", "每日 09:00–18:00（工作日）"],
+    ["施工方式", "业主自行委托持证施工队"],
+  ];
+
+  const FLOW_NODES = [
+    { label: "管家发起", done: true },
+    { label: "项目经理审批", active: true },
+    { label: "完成", done: false },
+  ];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center"
+      style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="w-full md:max-w-md rounded-t-2xl md:rounded-2xl flex flex-col overflow-hidden"
+        style={{ backgroundColor: "#fff", maxHeight: "92vh" }}>
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b shrink-0" style={{ borderColor: "#E8E9EB" }}>
+          <div>
+            <div className="text-sm font-semibold" style={{ color: "#1F2329" }}>装修申请审批</div>
+            <div className="text-xs mt-0.5" style={{ color: DD_GRAY }}>管家张小华代业主发起 · 待您审批</div>
+          </div>
+          <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center"
+            style={{ backgroundColor: "#F5F6F8", color: DD_GRAY }}><X size={14} /></button>
+        </div>
+
+        {submitted ? (
+          <div className="flex-1 flex flex-col items-center justify-center gap-4 px-6 py-8">
+            <div className="w-16 h-16 rounded-full flex items-center justify-center"
+              style={{ backgroundColor: submitType === "approve" ? "#F6FFED" : "#FFF1F0" }}>
+              {submitType === "approve"
+                ? <CheckSquare size={28} style={{ color: DD_GREEN }} />
+                : <X size={28} style={{ color: DD_RED }} />}
+            </div>
+            <div className="text-center">
+              <p className="text-base font-semibold" style={{ color: "#1F2329" }}>
+                {submitType === "approve" ? "已同意，流程已提交" : "已退回，意见已发送"}
+              </p>
+              <p className="text-xs mt-1.5" style={{ color: DD_GRAY }}>
+                {submitType === "approve"
+                  ? "装修申请已批准，业主将收到通知"
+                  : "退回意见已发送至管家和业主"}
+              </p>
+            </div>
+            <button onClick={onComplete}
+              className="w-full py-2.5 rounded-xl text-sm font-medium text-white mt-2"
+              style={{ backgroundColor: DD_BLUE }}>关闭</button>
+          </div>
+        ) : (
+          <>
+            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3" style={{ backgroundColor: "#F8F9FB" }}>
+
+              {/* 申请信息 */}
+              <div className="bg-white rounded-xl overflow-hidden shadow-sm" style={{ border: "1px solid #E8E9EB" }}>
+                <div className="px-4 py-2.5 border-b" style={{ backgroundColor: "#F8F9FB", borderColor: "#E8E9EB" }}>
+                  <span className="text-xs font-semibold" style={{ color: "#1F2329" }}>📋 申请信息</span>
+                </div>
+                {APPLY_INFO.map(([label, value]) => (
+                  <div key={label} className="flex items-center px-4 py-2.5 border-b last:border-0" style={{ borderColor: "#F0F2F5" }}>
+                    <span className="text-xs shrink-0 w-16" style={{ color: DD_GRAY }}>{label}</span>
+                    <span className="text-xs font-medium" style={{ color: "#1F2329" }}>{value}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* 装修详情 */}
+              <div className="bg-white rounded-xl overflow-hidden shadow-sm" style={{ border: "1px solid #E8E9EB" }}>
+                <div className="px-4 py-2.5 border-b" style={{ backgroundColor: "#F8F9FB", borderColor: "#E8E9EB" }}>
+                  <span className="text-xs font-semibold" style={{ color: "#1F2329" }}>🏗️ 装修详情</span>
+                </div>
+                {RENO_DETAIL.map(([label, value]) => (
+                  <div key={label} className="flex items-start px-4 py-2.5 border-b last:border-0" style={{ borderColor: "#F0F2F5" }}>
+                    <span className="text-xs shrink-0 w-16 mt-0.5" style={{ color: DD_GRAY }}>{label}</span>
+                    <span className="text-xs font-medium leading-relaxed" style={{ color: "#1F2329" }}>{value}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* 业主声明 */}
+              <div className="bg-white rounded-xl p-4 shadow-sm" style={{ border: "1px solid #E8E9EB" }}>
+                <div className="text-xs font-semibold mb-2" style={{ color: "#1F2329" }}>📝 业主声明</div>
+                <p className="text-xs leading-relaxed" style={{ color: DD_GRAY }}>
+                  本人承诺严格遵守《时代云图（佛山）二期住区装修管理规定》，按要求提前48小时报备施工人员，佩戴统一出入证件，施工期间注意噪音管控，不影响邻居正常生活。如有违规，愿承担相应责任。
+                </p>
+              </div>
+
+              {/* 审批流程 */}
+              <div className="bg-white rounded-xl p-4 shadow-sm" style={{ border: "1px solid #E8E9EB" }}>
+                <div className="text-xs font-semibold mb-3" style={{ color: "#1F2329" }}>审批流程</div>
+                <div className="flex items-start">
+                  {FLOW_NODES.map((node, i) => (
+                    <div key={node.label} className="flex items-start flex-1">
+                      <div className="flex flex-col items-center gap-1 shrink-0">
+                        <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold"
+                          style={{
+                            backgroundColor: node.done ? DD_GREEN : node.active ? DD_BLUE : "#F0F2F5",
+                            color: node.done || node.active ? "#fff" : DD_GRAY,
+                          }}>
+                          {node.done ? "✓" : i + 1}
+                        </div>
+                        <span className="text-[10px] text-center leading-tight" style={{
+                          color: node.active ? DD_BLUE : node.done ? DD_GREEN : DD_GRAY,
+                          maxWidth: 52,
+                        }}>{node.label}</span>
+                      </div>
+                      {i < FLOW_NODES.length - 1 && (
+                        <div className="flex-1 h-px mt-3 mx-1" style={{ backgroundColor: node.done ? DD_GREEN : "#E8E9EB" }} />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Reject comment */}
+              {rejecting && (
+                <div className="bg-white rounded-xl p-4 shadow-sm" style={{ border: `1px solid ${DD_RED}40` }}>
+                  <div className="text-xs font-semibold mb-2" style={{ color: DD_RED }}>退回意见（必填）</div>
+                  <textarea rows={3}
+                    className="w-full rounded-xl px-3 py-2.5 text-sm outline-none resize-none"
+                    placeholder="请填写退回原因或修改意见..."
+                    value={rejectComment}
+                    onChange={e => setRejectComment(e.target.value)}
+                    style={{ backgroundColor: "#F8F9FB", border: "1px solid #E8E9EB", color: "#1F2329" }} />
+                </div>
+              )}
+            </div>
+
+            {/* Bottom buttons */}
+            <div className="flex gap-3 px-4 py-3 border-t shrink-0" style={{ borderColor: "#E8E9EB" }}>
+              {!rejecting ? (
+                <>
+                  <button onClick={() => setRejecting(true)}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-medium"
+                    style={{ backgroundColor: "#FFF1F0", color: DD_RED, border: `1px solid ${DD_RED}40` }}>
+                    不同意
+                  </button>
+                  <button onClick={handleApprove}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-medium text-white"
+                    style={{ backgroundColor: DD_GREEN }}>
+                    同意
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button onClick={() => { setRejecting(false); setRejectComment(""); }}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-medium"
+                    style={{ backgroundColor: "#F5F6F8", color: DD_GRAY }}>
+                    取消
+                  </button>
+                  <button onClick={handleRejectConfirm}
+                    disabled={!rejectComment.trim()}
+                    className="flex-1 py-2.5 rounded-xl text-sm font-medium text-white"
+                    style={{ backgroundColor: DD_RED, opacity: !rejectComment.trim() ? 0.5 : 1 }}>
+                    确认退回
+                  </button>
+                </>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── Business System redirect view ────────────────────────────────────────────
 const BIZ_URL = "https://rcs.linli580.cn/do/page.aspx?pageid=w_80b8a879_6a26_428a_9919_be60285a68dd&isnewrecord=0&objectid=editenergy&submittable=&tableid=w_66ce69d1_9679_4187_b8ab_1c687c91e6b4&recordid=ea372f56-98c3-4674-8ed8-96a2c924b6ec&isRepateDialog=false&templet=&proid=90BBF7CB-E47A-45B9-B97B-F5672009BE1D&citycompanyid=DEB27A2C-8B4C-49C9-96D1-4458A3DCC55F&appid=&allhtml=1&menuid=b4b1059c_87f9_4991_9fa1_1e8b4d6f6ee0&alldic=1&loginid=duzhencheng&stamp=1781690096542&token=f1aaabbe0e0e03c3d2525770808f1635f59329a7";
 
@@ -2178,7 +2370,7 @@ export default function App() {
   const [subCat, setSubCat] = useState<Record<string, string>>({ 日程:"全部", 任务:"全部", 公告:"全部", 审批:"全部" });
   const [selectedSchedule, setSelectedSchedule] = useState<Schedule|null>(null);
   const [aiUnread, setAiUnread] = useState(false);
-  const [scheduleAlertVisible, setScheduleAlertVisible] = useState(false);
+  const [showBpmApproval, setShowBpmApproval] = useState(false);
   const [urgentPopupVisible, setUrgentPopupVisible] = useState(false);
   const [showProjectEntryCard, setShowProjectEntryCard] = useState(false);
   const [completedCards, setCompletedCards] = useState<Set<string>>(new Set());
@@ -2200,7 +2392,7 @@ export default function App() {
 
   const completeCard = (id: string) => { setCompletedCards(prev => new Set([...prev, id])); setDetailTask(null); };
 
-  const urgentVisible = [...(showProjectEntryCard ? ["mc-project-entry"] : []), "mc-t1"].filter(id => !completedCards.has(id));
+  const urgentVisible = [...(showProjectEntryCard ? ["mc-project-entry"] : []), "mc-bpm-decoration", "mc-t1"].filter(id => !completedCards.has(id));
   const todayVisible  = ["mc-inspection"].filter(id => !completedCards.has(id));
   const followVisible = ["mc-announcement", "mc-t6", "mc-q2-approval"].filter(id => !completedCards.has(id));
   const totalVisible  = urgentVisible.length + todayVisible.length + followVisible.length;
@@ -2346,6 +2538,12 @@ export default function App() {
           onJumpCalendar={() => { setDdNav("日程"); setSelectedSchedule(null); }}
         />
       )}
+      {showBpmApproval && (
+        <BpmApprovalModal
+          onClose={() => setShowBpmApproval(false)}
+          onComplete={() => { completeCard("mc-bpm-decoration"); setShowBpmApproval(false); }}
+        />
+      )}
       {detailTask ? (
         <TaskDetail task={detailTask} onBack={()=>setDetailTask(null)} onAI={handleAIAssist} onInspectionDone={handleInspectionDone}
           onComplete={taskCardMap[detailTask.id] ? () => completeCard(taskCardMap[detailTask!.id]) : undefined}
@@ -2402,6 +2600,26 @@ export default function App() {
                     <button onClick={e => { e.stopPropagation(); setDetailTask(tasks.find(t=>t.id==="t3")||null); }}
                       className="shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-medium text-white self-center"
                       style={{ backgroundColor:DD_RED }}>去处理</button>
+                  </div>
+                </div>
+                )}
+                {/* BPM 装修审批 */}
+                {!completedCards.has("mc-bpm-decoration") && (
+                <div onClick={() => setShowBpmApproval(true)}
+                  className="bg-white rounded-xl p-3 mb-2 shadow-sm cursor-pointer"
+                  style={{ border:"1px solid #FFD6D6", borderLeft:`3px solid ${DD_RED}` }}>
+                  <div className="flex items-start gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded" style={{ backgroundColor:DD_RED_LIGHT, color:DD_RED }}>审批</span>
+                        <span className="text-[10px] font-medium" style={{ color:DD_RED }}>待您审批</span>
+                      </div>
+                      <p className="text-sm font-semibold leading-snug mb-1" style={{ color:"#1F2329" }}>B区24栋802装修申请审批</p>
+                      <p className="text-xs leading-relaxed" style={{ color:DD_GRAY }}>管家张小华代业主李先生发起 · 普通装修申请</p>
+                    </div>
+                    <button onClick={e => { e.stopPropagation(); setShowBpmApproval(true); }}
+                      className="shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-medium text-white self-center"
+                      style={{ backgroundColor:DD_RED }}>去审批</button>
                   </div>
                 </div>
                 )}
@@ -2627,48 +2845,6 @@ export default function App() {
   return (
     <div className="h-screen w-screen flex flex-col overflow-hidden" style={{ fontFamily:"'Noto Sans SC', system-ui, sans-serif" }}>
 
-      {/* ─── Schedule Alert Modal ────────────────────────────────────── */}
-      {scheduleAlertVisible && (
-        <div className="fixed inset-0 z-[500] flex items-center justify-center"
-          style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
-          onClick={() => setScheduleAlertVisible(false)}>
-          <div className="rounded-2xl overflow-hidden shadow-2xl w-72"
-            style={{ backgroundColor: "#fff" }}
-            onClick={e => e.stopPropagation()}>
-            <div className="px-4 py-3 flex items-center gap-2" style={{ backgroundColor: DD_RED }}>
-              <Calendar size={16} className="text-white" />
-              <span className="text-sm font-bold text-white">日程提醒</span>
-            </div>
-            <div className="px-5 py-5 flex flex-col items-center gap-3 text-center">
-              <div className="w-14 h-14 rounded-full flex items-center justify-center"
-                style={{ backgroundColor: DD_RED_LIGHT }}>
-                <span className="text-2xl font-bold" style={{ color: DD_RED }}>{schedules.length}</span>
-              </div>
-              <div>
-                <p className="text-base font-semibold" style={{ color: "#1F2329" }}>
-                  您有 <span style={{ color: DD_RED }}>{schedules.length} 个</span>日程待处理
-                </p>
-                <p className="text-xs mt-1" style={{ color: DD_GRAY }}>
-                  包含 {schedules.filter(s => s.category === "会议").length} 个会议、{schedules.filter(s => s.category !== "会议").length} 个提醒
-                </p>
-              </div>
-              <div className="flex gap-2 w-full mt-1">
-                <button onClick={() => setScheduleAlertVisible(false)}
-                  className="flex-1 py-2 rounded-xl text-sm font-medium"
-                  style={{ backgroundColor: "#F5F6F8", color: DD_GRAY }}>
-                  稍后查看
-                </button>
-                <button onClick={() => { setScheduleAlertVisible(false); setDdNav("日程"); }}
-                  className="flex-1 py-2 rounded-xl text-sm font-medium text-white"
-                  style={{ backgroundColor: DD_RED }}>
-                  立即查看
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* ─── DingTalk Title Bar ─────────────────────────────────────── */}
       <div className="flex items-center h-9 shrink-0 px-3 gap-3 select-none" style={{ backgroundColor:"#D5DFF7" }}>
         <div className="flex items-center gap-2 shrink-0">
@@ -2696,13 +2872,7 @@ export default function App() {
         <div className="flex flex-col items-center pt-3 pb-3 gap-0.5 shrink-0" style={{ width:64, backgroundColor:"#D5DFF7" }}>
           <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold mb-3" style={{ backgroundColor:DD_BLUE }}>项</div>
           {ddNavItems.map(item => (
-            <button key={item.key} onClick={() => {
-              if (item.key === "日程") {
-                setScheduleAlertVisible(true);
-              } else {
-                setDdNav(item.key);
-              }
-            }}
+            <button key={item.key} onClick={() => setDdNav(item.key)}
               className="flex flex-col items-center gap-0.5 w-full py-2 px-1 transition-colors relative"
               style={{
                 color: ddNav === item.key ? '#2D2F33' : '#5E6678',
