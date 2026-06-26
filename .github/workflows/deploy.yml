@@ -32,6 +32,8 @@ jobs:
 
       - run: pnpm build
 
+      - run: cp 时代邻里钉钉协同平台-demo.html dist/
+
       - uses: actions/upload-pages-artifact@v3
         with:
           path: dist
