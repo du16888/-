@@ -2099,7 +2099,7 @@ function KnowledgeBaseModal({ docTitle, onClose }: { docTitle: string; onClose: 
 
 // ─── 消息页 ──────────────────────────────────────────────────────────────────
 const msgList = [
-  { id:"msg1", name:"时代云图（佛山）二期工作交流群", avatar:"云", avatarBg:"#337EFF", time:"10:03", preview:"AI助理: ✅ 工单已更新为「处理中」预计...", unread:3, selected:true, tags:["工作群"] },
+  { id:"msg1", name:"时代云图（佛山）二期工作交流群", avatar:"云", avatarBg:"#337EFF", time:"15:12", preview:"AI助理: ✅ 台风防风准备全部完成，5/5项任务已确认", unread:3, selected:true, tags:["工作群"] },
   { id:"msg2", name:"时代邻里物管客服群", avatar:"客", avatarBg:"#52C41A", time:"09:10", preview:"王芳: 03栋1203业主噪音投诉已处理完毕", tags:["工作群"] },
   { id:"msg3", name:"工程维修组", avatar:"工", avatarBg:"#1890FF", time:"09:05", preview:"张伟: 本周电梯维保计划已排好，请查收" },
   { id:"msg4", name:"品质巡检通报", avatar:"品", avatarBg:"#FA8C16", time:"昨天", preview:"[巡检报告] 6月24日品质检查结果已发布", tags:["系统通知"] },
@@ -2111,27 +2111,46 @@ const msgList = [
 ];
 
 const groupMessages = [
-  { id:"gm1", type:"system", text:"今天 09:15" },
-  { id:"gm2", type:"other", sender:"李晓梅", role:"管家", avatar:"梅", avatarBg:"#52C41A",
-    text:"各位，我刚完成03栋大堂巡检，发现天花板瓷砖有渗水情况，水迹已扩散约半平方，已拍照记录，请工程组安排查看 📸", time:"09:15" },
-  { id:"gm3", type:"image", sender:"李晓梅", role:"管家", avatar:"梅", avatarBg:"#52C41A", time:"09:15" },
-  { id:"gm4", type:"bot", sender:"AI邻里助手", avatar:"AI", avatarBg:"#337EFF",
-    text:"⚡ 检测到维修事件，正在自动生成工单...", time:"09:16" },
-  { id:"gm5", type:"card", sender:"AI邻里助手", avatar:"AI", avatarBg:"#337EFF", time:"09:16",
-    card:{ no:"WO-20260625-047", location:"时代云图（佛山）二期 · 03栋大堂", issue:"天花板瓷砖渗水", type:"工程维修", priority:"紧急", assignee:"张伟（工程组）", status:"待处理" } },
-  { id:"gm6", type:"bot", sender:"AI邻里助手", avatar:"AI", avatarBg:"#337EFF",
-    text:"@张伟 您好，03栋大堂天花板发现渗水，工单编号 WO-20260625-047，优先级：紧急，请尽快前往现场查看并在工单内更新处理进度。", time:"09:16" },
-  { id:"gm7", type:"other", sender:"张伟", role:"工程", avatar:"工", avatarBg:"#1890FF",
-    text:"收到！我10分钟内到现场 👷", time:"09:18" },
-  { id:"gm8", type:"other", sender:"陈经理", role:"项目经理", avatar:"陈", avatarBg:"#722ED1",
-    text:"好的，今天内必须处理完毕，进展及时在群里同步", time:"09:20" },
-  { id:"gm9", type:"other", sender:"王芳", role:"客助", avatar:"客", avatarBg:"#FA8C16",
-    text:"我已电话通知03栋受影响楼层业主，做好解释安抚工作 👌", time:"09:22" },
-  { id:"gm10", type:"system", text:"10:02" },
-  { id:"gm11", type:"other", sender:"张伟", role:"工程", avatar:"工", avatarBg:"#1890FF",
-    text:"已到现场，确认是1-2层之间管道破损渗水，已联系专业维修人员，预计今天下午3点前完成修复，修复后拍照上传工单。", time:"10:02" },
+  { id:"gm1", type:"system", text:"今天 14:00" },
+  { id:"gm2", type:"bot", sender:"AI邻里助手", avatar:"AI", avatarBg:"#337EFF",
+    text:"⚠️ 【台风预警通知】@所有人\n\n气象台发布台风橙色预警，台风「天鸽」预计明日15:00前后登陆，届时阵风可达12级。\n\n请各岗位今日16:00前完成以下防风措施并在本群回复确认：", time:"14:00" },
+  { id:"gm3", type:"notify", sender:"AI邻里助手", avatar:"AI", avatarBg:"#337EFF", time:"14:00",
+    notify:{
+      title:"台风防风任务清单",
+      subtitle:"时代云图（佛山）二期 · 请各组今日16:00前完成并回复",
+      tasks:[
+        { group:"管家组", owner:"李晓梅", task:"公共区域固定设施加固（花圃支架、景观灯、宣传展架）", done:false },
+        { group:"工程组", owner:"张伟", task:"排水系统检查 + 地下室防水 + 备用发电机待机", done:false },
+        { group:"客助组", owner:"王芳", task:"向全体业主推送台风提醒，大堂放置防水沙袋", done:false },
+        { group:"保洁组", owner:"刘芳", task:"清理各楼栋排水沟杂物，户外垃圾桶移入室内固定", done:false },
+        { group:"项目经理", owner:"陈经理", task:"统筹确认各组完成情况，向区域汇报备案", done:false },
+      ],
+    },
+  },
+  { id:"gm4", type:"other", sender:"陈经理", role:"项目经理", avatar:"陈", avatarBg:"#722ED1",
+    text:"各位注意，台风「天鸽」登陆时间比预期提前，今天16:00前务必完成，有问题随时在群里说。大家加油 💪", time:"14:02" },
+  { id:"gm5", type:"other", sender:"李晓梅", role:"管家", avatar:"梅", avatarBg:"#52C41A",
+    text:"收到！马上带人开始公共区域检查和设施加固，大堂门口的展架和花圃支架先处理", time:"14:04" },
+  { id:"gm6", type:"other", sender:"张伟", role:"工程", avatar:"工", avatarBg:"#1890FF",
+    text:"收到，我去地下室检查排水泵和配电房，顺便确认备用发电机状态 🔧", time:"14:05" },
+  { id:"gm7", type:"other", sender:"王芳", role:"客助", avatar:"客", avatarBg:"#FA8C16",
+    text:"收到，我这边先通知物业群推送台风提醒给业主，大堂沙袋我去库房拿", time:"14:06" },
+  { id:"gm8", type:"system", text:"14:38" },
+  { id:"gm9", type:"other", sender:"李晓梅", role:"管家", avatar:"梅", avatarBg:"#52C41A",
+    text:"✅ 管家组完成：楼道、大堂、车库出入口固定设施已全部加固，景观区花圃支架已绑扎，临时宣传展架已撤除收纳，已拍照存档", time:"14:38" },
+  { id:"gm10", type:"other", sender:"张伟", role:"工程", avatar:"工", avatarBg:"#1890FF",
+    text:"✅ 工程组完成：地下室排水泵测试正常，配电房门缝防水条已更换，备用发电机已加油待机，屋顶设备固定螺栓全部复检", time:"14:41" },
+  { id:"gm11", type:"other", sender:"王芳", role:"客助", avatar:"客", avatarBg:"#FA8C16",
+    text:"✅ 客助组完成：业主台风提醒短信+钉钉已推送，1楼大堂防水沙袋10个就位，公告栏已张贴台风注意事项，地库入口已放警示牌", time:"14:50" },
   { id:"gm12", type:"bot", sender:"AI邻里助手", avatar:"AI", avatarBg:"#337EFF",
-    text:"✅ 工单 WO-20260625-047 状态已更新为「处理中」，预计完成时间：今天 15:00，已同步至物业管理系统并推送业主通知。", time:"10:03" },
+    text:"📊 防风任务进度更新（14:50）\n\n✅ 管家组 — 李晓梅 已完成\n✅ 工程组 — 张伟 已完成\n✅ 客助组 — 王芳 已完成\n⏳ 保洁组 — 刘芳 未回复\n⏳ 项目经理 — 陈经理 未确认\n\n@刘芳 请确认排水沟清理和垃圾桶固定情况\n@陈经理 请在完成统筹后回复确认", time:"14:51" },
+  { id:"gm13", type:"system", text:"15:08" },
+  { id:"gm14", type:"other", sender:"刘芳", role:"保洁", avatar:"洁", avatarBg:"#13C2C2",
+    text:"✅ 保洁组完成：1-10栋各单元门前排水沟杂物已清理，户外8个垃圾桶已移入车库固定，园区水沟盖板已加固", time:"15:08" },
+  { id:"gm15", type:"other", sender:"陈经理", role:"项目经理", avatar:"陈", avatarBg:"#722ED1",
+    text:"✅ 统筹确认：已向区域经理汇报备案，各组任务均已完成。大家辛苦了！台风期间保持通讯畅通，有突发情况随时群内反馈 🙏", time:"15:12" },
+  { id:"gm16", type:"bot", sender:"AI邻里助手", avatar:"AI", avatarBg:"#337EFF",
+    text:"✅ 台风防风准备全部完成（15:12）\n\n5/5 项任务已确认完成，较要求时间提前44分钟。\n\n已自动生成防风工作记录并推送至项目管理系统，如台风期间发生设施损坏请随时在群内告知，AI将自动生成应急工单。", time:"15:12" },
 ];
 
 function DDMsgPage() {
@@ -2185,7 +2204,7 @@ function DDMsgPage() {
               <span className="text-sm font-semibold" style={{ color:"#1F2329" }}>时代云图（佛山）二期工作交流群</span>
               <span className="text-xs px-1.5 py-0.5 rounded" style={{ color:DD_BLUE, backgroundColor:DD_BLUE_LIGHT }}>工作群</span>
             </div>
-            <div className="text-xs mt-0.5" style={{ color:DD_GRAY }}>管家 · 工程 · 客助 · 保洁 · 项目经理 · AI助理，共6人</div>
+            <div className="text-xs mt-0.5" style={{ color:DD_GRAY }}>李晓梅(管家) · 张伟(工程) · 王芳(客助) · 刘芳(保洁) · 陈经理(项目经理) · AI助理，共6人</div>
           </div>
           <div className="flex items-center gap-2">
             <button style={{ color:DD_GRAY, fontSize:18 }}>···</button>
@@ -2207,6 +2226,46 @@ function DDMsgPage() {
                   <div className="rounded-xl overflow-hidden flex items-center justify-center text-3xl"
                     style={{ width:120, height:90, backgroundColor:"#E8E9EB", border:"1px solid #D8D8D8" }}>
                     📷
+                  </div>
+                </div>
+              );
+            }
+
+            if (msg.type === "notify" && msg.notify) {
+              const n = msg.notify;
+              return (
+                <div key={msg.id} className="flex items-start gap-2.5">
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center text-white text-[11px] font-bold shrink-0 mt-0.5"
+                    style={{ backgroundColor: msg.avatarBg }}>{msg.avatar}</div>
+                  <div className="flex flex-col gap-0.5" style={{ maxWidth:"76%" }}>
+                    <div className="flex items-center gap-1.5 mb-0.5">
+                      <span className="text-[11px] font-medium" style={{ color:"#1F2329" }}>{msg.sender}</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ color:DD_BLUE, backgroundColor:DD_BLUE_LIGHT }}>AI助理</span>
+                      <span className="text-[10px]" style={{ color:DD_GRAY }}>{msg.time}</span>
+                    </div>
+                    <div className="rounded-xl overflow-hidden" style={{ border:"1px solid #FFD666", backgroundColor:"#fff", boxShadow:"0 1px 4px rgba(0,0,0,0.06)" }}>
+                      <div className="px-3 py-2 flex items-center gap-2" style={{ backgroundColor:"#FFFBE6", borderBottom:"1px solid #FFD666" }}>
+                        <span style={{ fontSize:13 }}>📢</span>
+                        <span className="text-xs font-semibold" style={{ color:"#875100" }}>{n.title}</span>
+                      </div>
+                      <div className="px-3 py-1.5">
+                        <p className="text-[10px] mb-2" style={{ color:DD_GRAY }}>{n.subtitle}</p>
+                        <div className="space-y-1.5">
+                          {n.tasks.map((t: { group: string; owner: string; task: string; done: boolean }, i: number) => (
+                            <div key={i} className="flex items-start gap-2 py-1.5 border-b last:border-0" style={{ borderColor:"#F5F6F8" }}>
+                              <span className="text-[11px] shrink-0 mt-0.5">{t.done ? "✅" : "⏳"}</span>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5 mb-0.5">
+                                  <span className="text-[10px] font-medium px-1.5 py-0.5 rounded" style={{ backgroundColor:"#F5F6F8", color:"#666" }}>{t.group}</span>
+                                  <span className="text-[10px]" style={{ color:DD_GRAY }}>{t.owner}</span>
+                                </div>
+                                <p className="text-[11px] leading-snug" style={{ color:"#1F2329" }}>{t.task}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               );
