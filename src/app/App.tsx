@@ -2777,6 +2777,7 @@ export default function App() {
       const isProjectEntry = ["进场","进驻","接管","进场SOP","进场流程","进场需要","进场任务"].some(kw => content.includes(kw));
       const isContractQuery = !isProjectEntry && ["合同","签约","合同录入","合同查询","合同状态","合同审批"].some(kw => content.includes(kw));
       const isPaymentQuery = ["请款","付款申请","报销","款项审批","费用申请"].some(kw => content.includes(kw));
+      const isExpenseSubject = ["科目","报什么","活动经费","费用科目","报销科目","客户关怀","业务接待"].some(kw => content.includes(kw));
       const isOrderReview = ["审单","单据审核","工单审核","核单","校验单据"].some(kw => content.includes(kw));
       const contractAgentReply: Partial<Message> = {
         content:"已识别到合同相关需求，**合同智能体**可协助您：\n\n• 上传合同 → AI 自动提取甲乙方信息、金额、期限等关键字段\n• 合同信息录入系统，推送审批流程\n• 查询合同状态与历史记录\n\n正在为您调起合同智能体...",
@@ -2816,7 +2817,11 @@ export default function App() {
         "生成Q2季度报告":{ content:"已为您生成 Q2 季度报告大纲：\n\n📊 **一、财务板块**\n- 收入完成率 87%，较Q1增长 12%\n- 成本控制在预算范围内\n\n🔧 **二、运营板块**\n- 项目收尾率 80%（目标 85%）\n- 装修申请处理时效提升 23%\n\n🤝 **三、客服板块**\n- 客户满意度 4.2/5，较Q1提升 0.3", actionable:[{label:"✨ AI 自动填充详细数据",prompt:"请帮我填充Q2报告的详细数据"},{label:"📤 导出Word文档",prompt:"请将报告导出为Word格式"},{label:"📨 发送给管理层",prompt:"请起草邮件将报告发送给管理层"}] },
         "查询合同审批状态":{ content:"已查询到以下待审合同：\n\n• **时代外滩消防维护合同** — 等待法务审核（已提交3天，已超标准时限）\n• **供应商B年度续签合同** — 财务审核通过，等待总监签字\n• **装修监理服务合同** — 草拟中\n\n消防合同已超期，建议立即催办法务部门。是否由AI发送催办通知？", actionable:[{label:"✨ AI 发送催办通知给法务部",prompt:"请帮我发送催办通知给法务部"},{label:"📋 查看合同详细条款",prompt:"请展示时代外滩消防维护合同的详细条款"}] },
       };
-      const reply = isAllTasks ? allTasksReply : isReorder ? reorderReply : isProjectEntry ? projectEntryReply : isContractQuery ? contractAgentReply : isPaymentQuery ? paymentAgentReply : isOrderReview ? orderReviewReply : canned[content];
+      const expenseSubjectReply: Partial<Message> = {
+        content: "已为您检索费控系统科目规范，根据活动性质建议如下：\n\n━━ 场景一：客户关怀活动（VIP业主/客户）\n科目：客户关怀费\n• 需提前 1-2 周发起「客户关怀费使用方案审批」\n• 路径：流程中心 → 流程库 → 邻里类-OA → 品质服务类 →\n  【邻里-客户关怀费使用方案审批】\n• 附件：归档版审批流程截图\n\n━━ 场景二：对外接待（政府部门/合作单位）\n科目：业务接待费\n• 附件：发票 + 消费小票 / 支付截图（缺一不可）\n• 注意：即便已发起客户关怀流程，若实际属于对外招待，仍需修正为此科目\n\n━━ 共同注意事项\n① 预算不足 → 先发起「预算调整」\n   路径：费控系统 → 全面预算中心 → 预算调整\n② 10 万元以上须提供三方比价证明\n   路径：SRM 系统发起采招流程，截图作为附件\n③ 不可挪用弱电维修费等不相关科目\n\n如不确定活动归属，建议联系区域财务确认。科目定义详见：\n邻里OA首页 → 我的应用 → 邻里新费控系统 → 首页 →\n操作指引下载专区 →《费控请款科目定义》",
+        suggestions: ["查看预算调整流程", "SRM三方比价如何操作", "联系区域财务"],
+      };
+      const reply = isExpenseSubject ? expenseSubjectReply : isAllTasks ? allTasksReply : isReorder ? reorderReply : isProjectEntry ? projectEntryReply : isContractQuery ? contractAgentReply : isPaymentQuery ? paymentAgentReply : isOrderReview ? orderReviewReply : canned[content];
       setMessages(prev=>prev.map(m=>m.typing?{
         ...m, typing:false,
         content: reply?.content ?? `收到您的问题：「${content}」\n\n正在调用企业知识库和数据进行分析...\n\n根据现有数据，建议您参考相关标准操作流程。如需AI代您执行某个具体步骤，请告知。`,
