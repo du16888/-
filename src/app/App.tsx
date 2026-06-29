@@ -771,57 +771,60 @@ const PARKING_FIELDS = [
 ];
 
 function ParkingProcessModal({ onClose, onComplete }: { onClose: () => void; onComplete?: () => void }) {
-  const [procStep, setProcStep] = useState<0|1|2>(0); // 0=填写 1=AI检查 2=已提交
-  const [inputMode, setInputMode] = useState<"voice"|"text">("voice");
-  const [fields, setFields] = useState<Record<string, string>>({});
-  const [recording, setRecording] = useState(false);
-  const [activeField, setActiveField] = useState<string|null>(null);
-  const [checking, setChecking] = useState(false);
+  type ChatMsg = { role:"agent"|"user"|"typing"; text: string; time?: string };
+  const [chatMsgs, setChatMsgs] = useState<ChatMsg[]>([]);
+  const [phase, setPhase] = useState<0|1|2|3|4|5>(0);
+  // 0=init 1=fetching data 2=data ready, ask for pricing 3=received pricing 4=plan generated 5=flow submitted
+  const chatEndRef = React.useRef<HTMLDivElement>(null);
 
-  const allFilled = PARKING_FIELDS.every(f => (fields[f]||"").trim().length > 0);
-
-  const startVoice = (fieldName: string) => {
-    setActiveField(fieldName);
-    setRecording(true);
+  const pushAgent = (text: string, delay: number, cb?: () => void) => {
     setTimeout(() => {
-      const demo: Record<string,string> = {
-        "栋数":"18栋","户数":"1240户","车位总数":"980个","车位定价方式":"差异化定价（地面/地下分区）",
-        "项目所属地区政府政策要求":"佛山市南海区停车场收费标准不超过¥400/月",
-        "项目周边车场调研情况说明":"周边3公里内共6个车场，月保均价¥320-380元",
-        "车场临停定价情况说明":"临停首小时¥5，超出按¥3/小时计，每日封顶¥30",
-        "车场月保定价情况说明":"地面月保¥280/月，地下标准¥350/月，地下精品¥420/月",
-      };
-      setFields(prev => ({ ...prev, [fieldName]: demo[fieldName] || "已录入" }));
-      setRecording(false);
-      setActiveField(null);
-    }, 1400);
+      setChatMsgs(prev => [...prev.filter(m => m.role !== "typing"), { role:"agent", text, time: new Date().toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit"}) }]);
+      cb?.();
+    }, delay);
   };
 
-  const handleVoiceAll = () => {
-    setRecording(true);
-    setActiveField("全部字段");
-    let i = 0;
-    const fill = () => {
-      if (i >= PARKING_FIELDS.length) { setRecording(false); setActiveField(null); return; }
-      const f = PARKING_FIELDS[i];
-      const demo: Record<string,string> = {
-        "栋数":"18栋","户数":"1240户","车位总数":"980个","车位定价方式":"差异化定价（地面/地下分区）",
-        "项目所属地区政府政策要求":"佛山市南海区停车场收费标准不超过¥400/月",
-        "项目周边车场调研情况说明":"周边3公里内共6个车场，月保均价¥320-380元",
-        "车场临停定价情况说明":"临停首小时¥5，超出按¥3/小时计，每日封顶¥30",
-        "车场月保定价情况说明":"地面月保¥280/月，地下标准¥350/月，地下精品¥420/月",
-      };
-      setFields(prev => ({ ...prev, [f]: demo[f] || "已录入" }));
-      i++;
-      setTimeout(fill, 500);
-    };
-    setTimeout(fill, 300);
+  const pushTyping = (delay: number) => {
+    setTimeout(() => {
+      setChatMsgs(prev => [...prev.filter(m => m.role !== "typing"), { role:"typing", text:"" }]);
+    }, delay);
   };
 
-  const submitStep1 = () => {
-    setChecking(true);
-    setProcStep(1);
-    setTimeout(() => { setChecking(false); setProcStep(2); }, 2400);
+  // Auto-start conversation on mount
+  React.useEffect(() => {
+    if (phase !== 0) return;
+    setPhase(1);
+    // Step 1: AI 自我介绍 + 调取数据
+    pushAgent("您好！我是 AI 停车场经营助手。\n\n我将协助您完成「停车场经营方案制定」任务，现在正在调取车场系统中「时代云图（佛山）二期」的车场数据，请稍候...", 500, () => {
+      pushTyping(2000);
+      // Step 2: 数据调取成功
+      pushAgent("✅ 车场数据调取成功\n\n已从车场管理系统获取以下数据：\n━━\n• 车场类型：地上 + 地下混合\n• 总车位数：980 个（地面 320 个 / 地下 660 个）\n• 所属区域：佛山市南海区\n• 政策限价：月保不超过 ¥400/月（佛山市停车收费标准）\n• 周边调研：3 公里内 6 家同类车场，均价 ¥320-380/月\n━━\n\n请您提供定价方案，我将据此生成完整的经营方案并发起审批。\n\n请直接输入或语音告知：地面月保、地下月保、临停等定价信息。", 3500, () => setPhase(2));
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  React.useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior:"smooth" });
+  }, [chatMsgs]);
+
+  const handleProvidePrice = () => {
+    setChatMsgs(prev => [...prev, { role:"user", text:"地面月保 ¥280/月，地下标准 ¥350/月，地下精品 ¥420/月；临停首小时 ¥5，超出 ¥3/小时，每日封顶 ¥30。", time: new Date().toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit"}) }]);
+    setPhase(3);
+    pushTyping(400);
+    pushAgent("✅ 已收到定价信息，正在生成停车场经营方案...", 1800, () => {
+      pushTyping(2000);
+      pushAgent("📄 停车场经营方案已生成\n\n━━ 时代云图（佛山）二期 · 停车场经营方案\n\n【月保定价】\n• 地面车位：¥280/月\n• 地下标准位：¥350/月\n• 地下精品位：¥420/月\n（均在政府限价 ¥400/月 内，地下精品位享受差异化定价）\n\n【临停收费】\n• 首 1 小时：¥5\n• 超出部分：¥3/小时\n• 每日封顶：¥30\n\n【合规说明】\n定价方案符合佛山市南海区停车场收费标准，月保最高价 ¥420 已取得差异化定价豁免（精品位认定）。\n\n━━\n\n方案已就绪，是否需要帮您发起定价方案审批流程？", 4000, () => setPhase(4));
+    });
+  };
+
+  const handleSubmitFlow = () => {
+    setChatMsgs(prev => [...prev, { role:"user", text:"是的，请帮我发起审批流程。", time: new Date().toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit"}) }]);
+    setPhase(5);
+    pushTyping(500);
+    pushAgent("好的，正在为您发起「停车场经营方案定价审批」流程...", 1500, () => {
+      pushTyping(1800);
+      pushAgent("✅ 流程已发起成功！\n\n━━ 审批流程详情\n• 流程名称：停车场经营方案定价审批\n• 发起时间：" + new Date().toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit"}) + "\n• 当前节点：项目总监审批（陈经理）\n• 预计完成：1-2 个工作日\n━━\n\n系统已同步通知陈经理，请关注审批进度。审批通过后，我将自动更新车场系统启费状态。\n\n本次任务「停车场经营方案制定」已完成 ✅", onComplete);
+    });
   };
 
   return (
@@ -829,164 +832,79 @@ function ParkingProcessModal({ onClose, onComplete }: { onClose: () => void; onC
       style={{ backgroundColor:"rgba(0,0,0,0.45)" }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="w-full md:max-w-md rounded-t-2xl md:rounded-2xl flex flex-col overflow-hidden"
-        style={{ backgroundColor:"#fff", maxHeight:"92vh" }}>
+        style={{ backgroundColor:"#fff", maxHeight:"88vh" }}>
 
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b shrink-0" style={{ borderColor:"#E8E9EB" }}>
-          <div>
-            <div className="text-sm font-semibold" style={{ color:"#1F2329" }}>停车场经营方案制定</div>
-            <div className="text-xs mt-0.5" style={{ color:DD_GRAY }}>
-              {procStep===0 ? "步骤 1/3：提交审批内容" : procStep===1 ? "步骤 2/3：AI 协助检查" : "步骤 3/3：提交审批完成"}
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor:DD_BLUE }}>AI</div>
+            <div>
+              <div className="text-sm font-semibold" style={{ color:"#1F2329" }}>停车场经营助手</div>
+              <div className="text-[11px]" style={{ color:DD_GREEN }}>● 在线</div>
             </div>
           </div>
           <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center"
             style={{ backgroundColor:"#F5F6F8", color:DD_GRAY }}><X size={14}/></button>
         </div>
 
-        {/* Step progress */}
-        <div className="flex items-center gap-1 px-4 pt-3 shrink-0">
-          {["提交审批内容","AI协助检查","提交流程审批"].map((s,i)=>(
-            <div key={i} className="flex items-center gap-1 flex-1">
-              <div className="flex-1 h-1 rounded-full" style={{ backgroundColor: i<=procStep ? DD_BLUE : "#E8E9EB" }}/>
-              {i<2 && <div className="w-1 h-1 rounded-full shrink-0" style={{ backgroundColor: i<procStep ? DD_BLUE : "#E8E9EB" }}/>}
-            </div>
-          ))}
-        </div>
-        <div className="flex px-4 pb-2 shrink-0">
-          {["提交审批内容","AI协助检查","提交流程审批"].map((s,i)=>(
-            <div key={i} className="flex-1 text-center text-[10px] mt-1" style={{ color: i<=procStep ? DD_BLUE : DD_GRAY }}>{s}</div>
-          ))}
-        </div>
-
-        <div className="flex-1 overflow-y-auto px-4 pb-4 space-y-3">
-
-          {/* Step 0: fill form */}
-          {procStep===0 && (
-            <>
-              {/* Mode toggle */}
-              <div className="flex items-center gap-2 p-1 rounded-xl" style={{ backgroundColor:"#F5F6F8" }}>
-                {(["voice","text"] as const).map(m=>(
-                  <button key={m} onClick={()=>setInputMode(m)}
-                    className="flex-1 py-2 rounded-lg text-xs font-medium transition-all"
-                    style={{ backgroundColor: inputMode===m?"#fff":undefined, color: inputMode===m?DD_BLUE:DD_GRAY,
-                      boxShadow: inputMode===m?"0 1px 3px rgba(0,0,0,0.1)":undefined }}>
-                    {m==="voice"?"🎙️ 语音输入":"✏️ 文字输入"}
-                  </button>
-                ))}
-              </div>
-
-              {inputMode==="voice" && (
-                <div className="rounded-xl p-3 flex flex-col items-center gap-2.5" style={{ backgroundColor:DD_BLUE_LIGHT, border:`1px solid ${DD_BLUE}30` }}>
-                  <p className="text-xs text-center" style={{ color:DD_BLUE }}>点击下方按钮，一键语音识别所有填写项</p>
-                  <button onClick={handleVoiceAll} disabled={recording}
-                    className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-medium text-white transition-all"
-                    style={{ backgroundColor: recording?"#93C5FD":DD_BLUE }}>
-                    <Mic size={16}/>
-                    {recording ? (activeField==="全部字段"?"正在识别...":"识别中") : allFilled?"重新录入":"开始语音识别"}
-                  </button>
-                  {recording && activeField==="全部字段" && (
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-3 h-3 border-2 rounded-full animate-spin" style={{ borderColor:`${DD_BLUE}30`, borderTopColor:DD_BLUE }}/>
-                      <span className="text-xs" style={{ color:DD_BLUE }}>AI 正在识别语音内容...</span>
-                    </div>
-                  )}
-                </div>
+        {/* Chat messages */}
+        <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3" style={{ backgroundColor:"#F8F9FB" }}>
+          {chatMsgs.map((msg, i) => (
+            <div key={i} className={`flex gap-2 ${msg.role==="user"?"flex-row-reverse":""}`}>
+              {msg.role !== "user" && (
+                <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[10px] font-bold shrink-0 mt-0.5" style={{ backgroundColor:DD_BLUE }}>AI</div>
               )}
-
-              {/* Fields */}
-              <div className="space-y-2">
-                {PARKING_FIELDS.map(f=>(
-                  <div key={f} className="rounded-xl p-3" style={{ border:`1px solid ${fields[f]?"#52C41A30":"#E8E9EB"}`, backgroundColor: fields[f]?"#F6FFED":"#fff" }}>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <span className="text-xs font-medium" style={{ color:"#1F2329" }}>{f}</span>
-                      <div className="flex items-center gap-1.5">
-                        {fields[f] && <span className="text-[10px]" style={{ color:DD_GREEN }}>✓ 已填写</span>}
-                        {inputMode==="voice" && !fields[f] && (
-                          <button onClick={()=>startVoice(f)} disabled={recording}
-                            className="flex items-center gap-1 text-[10px] px-2 py-1 rounded-lg"
-                            style={{ backgroundColor:DD_BLUE_LIGHT, color:DD_BLUE }}>
-                            <Mic size={10}/>{recording&&activeField===f?"识别中...":"语音"}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    {inputMode==="text" ? (
-                      <textarea rows={2}
-                        className="w-full text-xs rounded-lg p-2 resize-none outline-none"
-                        style={{ border:`1px solid #E8E9EB`, color:"#1F2329" }}
-                        placeholder={`请填写${f}`}
-                        value={fields[f]||""}
-                        onChange={e=>setFields(prev=>({...prev,[f]:e.target.value}))}
-                      />
-                    ) : (
-                      <div className="text-xs min-h-[28px]" style={{ color: fields[f]?"#1F2329":DD_GRAY }}>
-                        {fields[f]||`等待语音识别...`}
-                      </div>
-                    )}
+              <div className={`max-w-[82%] rounded-2xl px-3 py-2.5 text-xs leading-relaxed ${msg.role==="user"?"rounded-tr-sm text-white":"rounded-tl-sm"}`}
+                style={{
+                  backgroundColor: msg.role==="user" ? DD_BLUE : "#fff",
+                  color: msg.role==="user" ? "#fff" : "#1F2329",
+                  border: msg.role==="typing" ? "none" : msg.role==="agent" ? "1px solid #E8E9EB" : "none",
+                  whiteSpace:"pre-wrap",
+                }}>
+                {msg.role==="typing" ? (
+                  <div className="flex items-center gap-1 py-0.5">
+                    {[0,1,2].map(j=>(
+                      <div key={j} className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ backgroundColor:DD_GRAY, animationDelay:`${j*0.15}s` }}/>
+                    ))}
                   </div>
-                ))}
-              </div>
-
-              <button onClick={submitStep1} disabled={!allFilled}
-                className="w-full py-3 rounded-xl text-sm font-medium text-white transition-all"
-                style={{ backgroundColor: allFilled?DD_BLUE:"#D1D5DB" }}>
-                {allFilled?"确认提交，AI 开始检查":"请完成所有填写项"}
-              </button>
-            </>
-          )}
-
-          {/* Step 1: AI checking */}
-          {procStep===1 && (
-            <div className="flex flex-col items-center gap-4 py-8">
-              <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ backgroundColor:DD_BLUE_LIGHT }}>
-                <div className="w-8 h-8 border-4 rounded-full animate-spin" style={{ borderColor:`${DD_BLUE}30`, borderTopColor:DD_BLUE }}/>
-              </div>
-              <div className="text-center">
-                <div className="text-sm font-semibold mb-1" style={{ color:"#1F2329" }}>AI 正在检查审批内容</div>
-                <p className="text-xs" style={{ color:DD_GRAY }}>正在核查政策合规性、定价合理性及材料完整性...</p>
-              </div>
-              <div className="w-full rounded-xl p-3 space-y-2" style={{ backgroundColor:"#F8F9FB", border:"1px solid #E8E9EB" }}>
-                {["核查政策合规性","验证定价方案合理性","检查材料完整性"].map((item,i)=>(
-                  <div key={i} className="flex items-center gap-2">
-                    <div className="w-3.5 h-3.5 border-2 rounded-full animate-spin shrink-0" style={{ borderColor:`${DD_BLUE}30`, borderTopColor:DD_BLUE, animationDelay:`${i*0.3}s` }}/>
-                    <span className="text-xs" style={{ color:DD_GRAY }}>{item}</span>
-                  </div>
-                ))}
+                ) : msg.text}
               </div>
             </div>
-          )}
-
-          {/* Step 2: submitted */}
-          {procStep===2 && (
-            <div className="flex flex-col items-center gap-4 py-8">
-              <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ backgroundColor:"#F6FFED" }}>
-                <span style={{ fontSize:32 }}>✅</span>
-              </div>
-              <div className="text-center">
-                <div className="text-base font-semibold mb-1" style={{ color:DD_GREEN }}>审批已提交完成</div>
-                <p className="text-xs" style={{ color:DD_GRAY }}>AI 已将停车场经营方案提交至 BPM 审批流程</p>
-              </div>
-              <div className="w-full rounded-xl p-4 space-y-2.5" style={{ backgroundColor:"#F6FFED", border:"1px solid #52C41A30" }}>
-                {[
-                  ["提交时间","2026-06-25 " + new Date().toTimeString().slice(0,5)],
-                  ["审批流程","停车场经营方案定价审批"],
-                  ["当前节点","项目总监审批"],
-                  ["预计完成","1-2 个工作日"],
-                ].map(([l,v])=>(
-                  <div key={l} className="flex items-center justify-between">
-                    <span className="text-xs" style={{ color:DD_GRAY }}>{l}</span>
-                    <span className="text-xs font-medium" style={{ color:"#1F2329" }}>{v}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          ))}
+          <div ref={chatEndRef}/>
         </div>
 
-        <div className="px-4 py-3 border-t shrink-0" style={{ borderColor:"#E8E9EB" }}>
-          <button onClick={() => { if (procStep===2) { onComplete?.(); } onClose(); }} className="w-full py-2.5 rounded-xl text-sm font-medium"
-            style={{ backgroundColor:"#F5F6F8", color:DD_GRAY }}>
-            {procStep===2?"关闭":"暂时关闭"}
+        {/* Action buttons */}
+        <div className="px-4 py-3 border-t shrink-0 space-y-2" style={{ borderColor:"#E8E9EB", backgroundColor:"#fff" }}>
+          {phase === 2 && (
+            <button onClick={handleProvidePrice}
+              className="w-full py-2.5 rounded-xl text-sm font-medium text-white"
+              style={{ backgroundColor:DD_BLUE }}>
+              🎙️ 提供定价信息（地面¥280 / 地下¥350/420 / 临停¥5起）
+            </button>
+          )}
+          {phase === 4 && (
+            <button onClick={handleSubmitFlow}
+              className="w-full py-2.5 rounded-xl text-sm font-medium text-white"
+              style={{ backgroundColor:DD_BLUE }}>
+              ✅ 是的，帮我发起审批流程
+            </button>
+          )}
+          {phase === 5 && (
+            <button onClick={() => { onComplete?.(); onClose(); }}
+              className="w-full py-2.5 rounded-xl text-sm font-medium text-white"
+              style={{ backgroundColor:DD_GREEN }}>
+              完成，关闭窗口
+            </button>
+          )}
+          {(phase === 1 || phase === 3) && (
+            <div className="flex items-center justify-center gap-2 py-2">
+              <div className="w-3 h-3 border-2 rounded-full animate-spin" style={{ borderColor:`${DD_BLUE}30`, borderTopColor:DD_BLUE }}/>
+              <span className="text-xs" style={{ color:DD_GRAY }}>AI 正在处理...</span>
+            </div>
+          )}
+          <button onClick={onClose} className="w-full py-2 rounded-xl text-xs" style={{ color:DD_GRAY }}>
+            稍后处理
           </button>
         </div>
       </div>
@@ -2921,7 +2839,20 @@ export default function App() {
       { id:"t"+Date.now(), role:"agent", content:"", time:"", typing:true },
     ]);
     setTimeout(()=>{
-      const { content, actionable } = buildAIReply(task);
+      let content: string;
+      let actionable: {label:string;prompt:string}[] | undefined;
+      if (task.type === "项目进场") {
+        content = `📋 已为您扫描「时代云图（佛山）二期」接管后 7 日内全部进场任务，共 10 项：\n\n✅ 已完成（7 项）\n① 组织新项目进场沟通会\n② 财务 NC、收费系统账套建立与配置\n③ 进场方案制定\n④ 项目人员配置\n⑤ 新设立分公司或子公司\n⑥ 支付中心开户\n⑦ 新开银行账号\n\n⏳ 未完成（3 项）——当前角色待处理\n━━\n① 物业管理用房接收\n   截止：2026-07-01\n   完成标准：清洁、换锁、文件柜上锁\n━━\n② 停车场经营方案制定\n   截止：2026-06-24 ⚠️ 即将超期\n   完成标准：制定定价方案并完成审批（前提：车场已竣备交付）\n━━\n③ 停车场启动收费\n   截止：2026-07-08\n   完成标准：开通二维码缴费，更换P牌\n\n建议优先处理「停车场经营方案制定」，截止日期最近。点击左侧任务卡片「去处理」可启动 AI 辅助定价方案流程。`;
+        actionable = [
+          { label: "🅿️ 立即处理：停车场经营方案", prompt: "请帮我处理停车场经营方案制定" },
+          { label: "🏠 物业管理用房接收流程", prompt: "物业管理用房接收需要做什么" },
+          { label: "📊 查看完整进场任务清单", prompt: "查看全部进场任务" },
+        ];
+      } else {
+        const reply = buildAIReply(task);
+        content = reply.content;
+        actionable = reply.actionable;
+      }
       setMessages(prev=>prev.map(m=>m.typing?{ ...m, typing:false, content, time:now, actionable }:m));
     }, 1400);
   };
@@ -3012,7 +2943,7 @@ export default function App() {
                 </div>
                 {/* 项目进场任务 - 动态出现 */}
                 {showProjectEntryCard && !completedCards.has("mc-project-entry") && (
-                <div onClick={() => setDetailTask(tasks.find(t=>t.id==="t3")||null)}
+                <div onClick={() => { setDetailTask(tasks.find(t=>t.id==="t3")||null); handleAIAssist(tasks.find(t=>t.id==="t3")!); }}
                   className="bg-white rounded-xl p-3 mb-2 shadow-sm cursor-pointer"
                   style={{ border:"1px solid #FFD6D6", borderLeft:`3px solid ${DD_RED}`,
                     animation: "slideDownFade 0.4s cubic-bezier(0.34,1.56,0.64,1) both" }}>
@@ -3025,9 +2956,9 @@ export default function App() {
                       <p className="text-sm font-semibold leading-snug mb-1" style={{ color:"#1F2329" }}>项目进场7日内交付任务清单</p>
                       <p className="text-xs leading-relaxed" style={{ color:DD_GRAY }}>AI提示：进场关键节点任务，影响整体交付质量，需优先完成</p>
                     </div>
-                    <button onClick={e => { e.stopPropagation(); setDetailTask(tasks.find(t=>t.id==="t3")||null); }}
+                    <button onClick={e => { e.stopPropagation(); setDetailTask(tasks.find(t=>t.id==="t3")||null); handleAIAssist(tasks.find(t=>t.id==="t3")!); }}
                       className="shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-medium text-white self-center"
-                      style={{ backgroundColor:DD_RED }}>去处理</button>
+                      style={{ backgroundColor:DD_RED }}>查看</button>
                   </div>
                 </div>
                 )}
