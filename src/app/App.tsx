@@ -1447,7 +1447,8 @@ function OrderReviewAgentPanel({ onBack }: { onBack: () => void }) {
       </div>
 
       {/* Body */}
-      <div className="flex-1 overflow-y-auto" style={{ backgroundColor:"#F5F8FF" }}>
+      <div className="flex-1 overflow-hidden flex flex-col" style={{ backgroundColor:"#F5F8FF" }}>
+      <div className="flex-1 overflow-y-auto">
 
         {/* ── 扫描中 ── */}
         {step === "scanning" && (
@@ -1529,20 +1530,6 @@ function OrderReviewAgentPanel({ onBack }: { onBack: () => void }) {
               </div>
             </div>
 
-            {/* 一键审批按钮 */}
-            <button
-              className="w-full py-3 rounded-xl text-sm font-semibold text-white mt-1 flex items-center justify-center gap-2"
-              style={{ backgroundColor: step === "approving" ? `${agentColor}80` : agentColor }}
-              disabled={step === "approving"}
-              onClick={() => setStep("approving")}>
-              {step === "approving" ? (
-                <>
-                  <div className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor:"#ffffff40", borderTopColor:"#fff" }} />
-                  正在审批中...
-                </>
-              ) : "✓ 一键审批（8 项 AI 可自动通过）"}
-            </button>
-            <p className="text-center text-[10px]" style={{ color:DD_GRAY }}>SRM 合同需单独确认，不包含在一键审批中</p>
           </div>
         )}
 
@@ -1669,6 +1656,26 @@ function OrderReviewAgentPanel({ onBack }: { onBack: () => void }) {
           </div>
         )}
       </div>
+
+      {/* ── 固定底部：一键审批按钮（仅 review/approving 时显示） ── */}
+      {(step === "review" || step === "approving") && (
+        <div className="shrink-0 px-3 pb-3 pt-2 border-t" style={{ backgroundColor:"#F5F8FF", borderColor:"#E8E9EB" }}>
+          <button
+            className="w-full py-3 rounded-xl text-sm font-semibold text-white flex items-center justify-center gap-2"
+            style={{ backgroundColor: step === "approving" ? `${agentColor}80` : agentColor }}
+            disabled={step === "approving"}
+            onClick={() => setStep("approving")}>
+            {step === "approving" ? (
+              <>
+                <div className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor:"#ffffff40", borderTopColor:"#fff" }} />
+                正在审批中...
+              </>
+            ) : "✓ 一键审批（8 项 AI 可自动通过）"}
+          </button>
+          <p className="text-center text-[10px] mt-1.5" style={{ color:DD_GRAY }}>SRM 合同需单独确认，不包含在一键审批中</p>
+        </div>
+      )}
+    </div>
     </div>
   );
 }
