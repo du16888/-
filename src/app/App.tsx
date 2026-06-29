@@ -1991,60 +1991,48 @@ function OrderReviewAgentPanel({ onBack }: { onBack: () => void }) {
 
         {/* Welcome bubble */}
         {bubbles.includes("welcome") && (
-          <div className="flex gap-2">
+          <div className="flex gap-2 pr-8">
             <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-white text-xs font-bold" style={{ backgroundColor:agentColor }}>审</div>
             <div className="flex-1 space-y-2">
-              <div className="rounded-2xl rounded-tl-sm px-3 py-2.5 text-xs leading-relaxed" style={{ backgroundColor:"#fff", border:"1px solid #E8E9EB" }}>
-                您好！我是审单助理。已自动扫描所有待审批事项，以下是本次汇总：
-              </div>
-              {/* Scan result card */}
-              <div className="rounded-xl overflow-hidden" style={{ border:"1px solid #E8E9EB", backgroundColor:"#fff" }}>
-                <div className="px-3 py-2 flex items-center gap-2" style={{ backgroundColor:agentColor }}>
-                  <Zap size={13} className="text-white" />
-                  <span className="text-xs font-bold text-white">AI 扫描完成 · 共 9 项待审批</span>
-                </div>
-                <div className="p-3 space-y-2">
-                  <p className="text-xs leading-relaxed" style={{ color:"#1F2329" }}>
-                    共扫描到 <b>9 项</b>待审批事项：<b>请假申请×2、费用报销×4、装修审批×2</b>，均符合公司规定，AI 建议通过；<b>SRM合同审批×1</b> 发现 <span style={{ color:DD_ORANGE }}>2 处条款冲突</span>，需您人工确认。
-                  </p>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div className="rounded-lg p-2.5 text-center" style={{ backgroundColor:"#F6FFED", border:`1px solid ${agentColor}30` }}>
-                      <div className="text-xl font-bold" style={{ color:agentColor }}>8</div>
-                      <div className="text-[10px] mt-0.5 font-medium" style={{ color:"#52A31D" }}>AI 可自动审批</div>
-                      <div className="text-[9px] mt-0.5" style={{ color:DD_GRAY }}>请假×2 · 报销×4 · 装修×2</div>
-                    </div>
-                    <div className="rounded-lg p-2.5 text-center" style={{ backgroundColor:"#FFF7E6", border:`1px solid ${DD_ORANGE}30` }}>
-                      <div className="text-xl font-bold" style={{ color:DD_ORANGE }}>1</div>
-                      <div className="text-[10px] mt-0.5 font-medium" style={{ color:DD_ORANGE }}>需人工确认</div>
-                      <div className="text-[9px] mt-0.5" style={{ color:DD_GRAY }}>SRM合同 · 2处冲突</div>
-                    </div>
+              {/* 欢迎语 + 扫描结果合并成一个气泡 */}
+              <div className="rounded-2xl rounded-tl-sm px-3 py-3 text-xs space-y-2.5" style={{ backgroundColor:"#fff", border:"1px solid #E8E9EB" }}>
+                <p className="leading-relaxed" style={{ color:"#1F2329" }}>
+                  您好！已完成本次待审批事项扫描，共 <b>9 项</b>：
+                </p>
+                <div className="space-y-1.5 pl-1">
+                  <div className="flex items-center gap-2 text-xs" style={{ color:"#1F2329" }}>
+                    <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor:agentColor }} />
+                    <span><b>8 项</b>（请假×2、费用报销×4、装修×2）符合规定，AI 建议通过</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-xs" style={{ color:"#1F2329" }}>
+                    <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor:DD_ORANGE }} />
+                    <span><b>1 项</b> SRM合同审批发现 2 处条款冲突，需人工确认</span>
                   </div>
                 </div>
+                <p style={{ color:DD_GRAY }}>请选择操作：</p>
               </div>
               {/* Action buttons */}
               {phase === "idle" && (
                 <div className="flex gap-2">
                   <button onClick={handleAutoApprove}
-                    className="flex-1 py-2.5 rounded-xl text-xs font-semibold text-white flex items-center justify-center gap-1.5"
+                    className="flex-1 py-2 rounded-xl text-xs font-semibold text-white flex items-center justify-center gap-1.5"
                     style={{ backgroundColor:agentColor }}>
-                    <CheckSquare size={13} />一键审批 8 项
+                    <CheckSquare size={12} />一键审批 8 项
                   </button>
                   <button onClick={handleSrmView}
-                    className="flex-1 py-2.5 rounded-xl text-xs font-semibold text-white flex items-center justify-center gap-1.5"
-                    style={{ backgroundColor:DD_ORANGE }}>
-                    <AlertCircle size={13} />查看 SRM 合同
+                    className="flex-1 py-2 rounded-xl text-xs font-medium border flex items-center justify-center gap-1.5"
+                    style={{ borderColor:"#E8E9EB", color:"#1F2329", backgroundColor:"#fff" }}>
+                    <AlertCircle size={12} style={{ color:DD_ORANGE }} />查看 SRM 合同
                   </button>
                 </div>
               )}
               {/* After auto done, show SRM button if not yet viewed */}
               {phase === "auto_done" && !bubbles.includes("user_srm") && (
-                <div>
-                  <button onClick={handleSrmView}
-                    className="w-full py-2.5 rounded-xl text-xs font-semibold text-white flex items-center justify-center gap-1.5"
-                    style={{ backgroundColor:DD_ORANGE }}>
-                    <AlertCircle size={13} />继续查看 SRM 合同详情 →
-                  </button>
-                </div>
+                <button onClick={handleSrmView}
+                  className="w-full py-2 rounded-xl text-xs font-medium border flex items-center justify-center gap-1.5"
+                  style={{ borderColor:"#E8E9EB", color:"#1F2329", backgroundColor:"#fff" }}>
+                  <AlertCircle size={12} style={{ color:DD_ORANGE }} />查看 SRM 合同详情 →
+                </button>
               )}
             </div>
           </div>
