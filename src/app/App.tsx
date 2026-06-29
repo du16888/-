@@ -3541,7 +3541,9 @@ export default function App() {
           } : undefined}
         />
       ) : activeSubAgent === "order-review" ? (
-        <OrderReviewAgentPanel onBack={() => setActiveSubAgent(null)} />
+        <div className="flex-1 overflow-hidden flex flex-col">
+          <OrderReviewAgentPanel onBack={() => setActiveSubAgent(null)} />
+        </div>
       ) : activeSubAgent ? (
         <AgentIframePage agentKey={activeSubAgent} onBack={()=>setActiveSubAgent(null)} />
       ) : aiTab==="chat" ? (
