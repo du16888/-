@@ -1929,6 +1929,8 @@ function OrderReviewAgentPanel({ onBack }: { onBack: () => void }) {
   const [bubbles, setBubbles] = useState<ReviewBubble[]>([]);
   const [isTyping, setIsTyping] = useState(false);
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
+  const [inputValue, setInputValue] = useState("");
+  const [chatMessages, setChatMessages] = useState<{role:"user"|"agent", text:string}[]>([]);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   function toggleItem(id: string) {
@@ -1946,10 +1948,22 @@ function OrderReviewAgentPanel({ onBack }: { onBack: () => void }) {
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [bubbles, isTyping]);
+  }, [bubbles, isTyping, chatMessages]);
 
   function handleViewAll() {
     if (!bubbles.includes("all_items")) setBubbles(v => [...v, "all_items"]);
+  }
+
+  function handleSend() {
+    const text = inputValue.trim();
+    if (!text) return;
+    setInputValue("");
+    setChatMessages(v => [...v, { role:"user", text }]);
+    setIsTyping(true);
+    setTimeout(() => {
+      setIsTyping(false);
+      setChatMessages(v => [...v, { role:"agent", text:"收到您的问题，请参考上方审批详情，或直接点击操作按钮进行处理。" }]);
+    }, 1200);
   }
 
   function handleAutoApprove() {
@@ -2024,26 +2038,24 @@ function OrderReviewAgentPanel({ onBack }: { onBack: () => void }) {
                 </div>
                 <p style={{ color:DD_GRAY }}>请选择操作：</p>
               </div>
-              {/* Action buttons — always visible while idle */}
-              {phase === "idle" && (
-                <div className="space-y-1.5">
+              {/* Action buttons — three in one row, hide once all_items is shown */}
+              {phase === "idle" && !bubbles.includes("all_items") && (
+                <div className="flex gap-1.5">
                   <button onClick={handleViewAll}
-                    className="w-full py-1.5 rounded-xl text-xs font-medium border flex items-center justify-center gap-1.5"
+                    className="flex-1 py-2 rounded-xl text-[10px] font-medium border flex items-center justify-center gap-1"
                     style={{ borderColor:"#D9D9D9", color:DD_GRAY, backgroundColor:"#fff" }}>
-                    <LayoutGrid size={11} />查看所有审批内容
+                    <LayoutGrid size={10} />查看全部
                   </button>
-                  <div className="flex gap-2">
-                    <button onClick={handleAutoApprove}
-                      className="flex-1 py-2 rounded-xl text-xs font-semibold text-white flex items-center justify-center gap-1.5"
-                      style={{ backgroundColor:agentColor }}>
-                      <CheckSquare size={12} />一键审批 8 项
-                    </button>
-                    <button onClick={handleSrmView}
-                      className="flex-1 py-2 rounded-xl text-xs font-medium border flex items-center justify-center gap-1.5"
-                      style={{ borderColor:"#E8E9EB", color:"#1F2329", backgroundColor:"#fff" }}>
-                      <AlertCircle size={12} style={{ color:DD_ORANGE }} />查看 SRM 合同
-                    </button>
-                  </div>
+                  <button onClick={handleAutoApprove}
+                    className="flex-1 py-2 rounded-xl text-[10px] font-semibold text-white flex items-center justify-center gap-1"
+                    style={{ backgroundColor:agentColor }}>
+                    <CheckSquare size={10} />一键审批 8 项
+                  </button>
+                  <button onClick={handleSrmView}
+                    className="flex-1 py-2 rounded-xl text-[10px] font-medium border flex items-center justify-center gap-1"
+                    style={{ borderColor:"#E8E9EB", color:"#1F2329", backgroundColor:"#fff" }}>
+                    <AlertCircle size={10} style={{ color:DD_ORANGE }} />查看 SRM
+                  </button>
                 </div>
               )}
             </div>
@@ -2118,6 +2130,20 @@ function OrderReviewAgentPanel({ onBack }: { onBack: () => void }) {
                   </div>
                 </div>
               </div>
+              {phase === "idle" && (
+                <div className="flex gap-1.5 mt-2">
+                  <button onClick={handleAutoApprove}
+                    className="flex-1 py-2 rounded-xl text-[10px] font-semibold text-white flex items-center justify-center gap-1"
+                    style={{ backgroundColor:agentColor }}>
+                    <CheckSquare size={10} />一键审批 8 项
+                  </button>
+                  <button onClick={handleSrmView}
+                    className="flex-1 py-2 rounded-xl text-[10px] font-medium border flex items-center justify-center gap-1"
+                    style={{ borderColor:"#E8E9EB", color:"#1F2329", backgroundColor:"#fff" }}>
+                    <AlertCircle size={10} style={{ color:DD_ORANGE }} />查看 SRM 合同
+                  </button>
+                </div>
+              )}
             </div>
           );
         })()}
@@ -2269,6 +2295,18 @@ function OrderReviewAgentPanel({ onBack }: { onBack: () => void }) {
           </div>
         )}
 
+        {/* User typed messages */}
+        {chatMessages.map((msg, i) => msg.role === "user" ? (
+          <div key={i} className="flex justify-end">
+            <div className="max-w-[75%] rounded-2xl rounded-tr-sm px-3 py-2 text-xs" style={{ backgroundColor:agentColor, color:"#fff" }}>{msg.text}</div>
+          </div>
+        ) : (
+          <div key={i} className="flex gap-2 pr-8">
+            <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-white text-xs font-bold" style={{ backgroundColor:agentColor }}>审</div>
+            <div className="rounded-2xl rounded-tl-sm px-3 py-2.5 text-xs" style={{ backgroundColor:"#fff", border:"1px solid #E8E9EB" }}>{msg.text}</div>
+          </div>
+        ))}
+
         {/* Typing indicator */}
         {isTyping && (
           <div className="flex gap-2">
@@ -2284,9 +2322,24 @@ function OrderReviewAgentPanel({ onBack }: { onBack: () => void }) {
         <div ref={bottomRef} />
       </div>
 
-      {/* Bottom status bar */}
-      <div className="shrink-0 px-3 py-2 border-t text-center text-[10px]" style={{ backgroundColor:"#FAFBFC", borderColor:"#E8E9EB", color:DD_GRAY }}>
-        {phase === "srm_done" ? "所有审批已处理完毕" : phase === "idle" ? "请选择操作" : "处理中..."}
+      {/* Input box */}
+      <div className="shrink-0 px-3 py-2.5 border-t" style={{ borderColor:"#E8E9EB", backgroundColor:"#fff" }}>
+        <div className="flex items-center gap-2 rounded-xl px-3 py-2" style={{ backgroundColor:"#F5F6F8" }}>
+          <input
+            type="text"
+            value={inputValue}
+            onChange={e => setInputValue(e.target.value)}
+            onKeyDown={e => { if (e.key === "Enter") handleSend(); }}
+            placeholder="向审单助理提问..."
+            className="flex-1 bg-transparent text-xs outline-none"
+            style={{ color:"#1F2329" }}
+          />
+          <button onClick={handleSend}
+            className="w-6 h-6 rounded-full flex items-center justify-center shrink-0"
+            style={{ backgroundColor: inputValue.trim() ? agentColor : "#D9D9D9" }}>
+            <Send size={11} className="text-white" />
+          </button>
+        </div>
       </div>
     </div>
   );
