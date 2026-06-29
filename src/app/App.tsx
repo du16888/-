@@ -53,6 +53,7 @@ interface UnreadMsg {
 }
 
 const AGENTS = [
+  { key:"quality",     label:"品质助理",     color:"#1677FF" },
   { key:"contract",    label:"合同助理",     color:"#722ED1" },
   { key:"payment",     label:"请款助理",     color:"#13C2C2" },
   { key:"order-review",label:"审单助理",     color:"#52C41A" },
@@ -1401,6 +1402,525 @@ const SRM_ISSUES = [
   { no:1, label:"条款冲突", clauses:"第9.1条 × 第9.1.2条", desc:"合同约定总工期30天，但竣工日期（2026-04-21）与开工日期（2026-04-20）仅相差1天，实际工期与约定严重冲突，无法确定统一执行标准。" },
   { no:2, label:"条款冲突", clauses:"第8.1.2.1条 × 第8.1.2.2条", desc:"付款义务以政府主管部门审批作为前提，与8.1.2.2条验收合格后30日内付款的约定互相矛盾，导致付款时间不明确。" },
 ];
+
+// ─── Quality Agent Panel ─────────────────────────────────────────────────────
+type QualityConvStep = "welcome" | "user_input" | "step1" | "step2" | "step3" | "step4" | "step5" | "step6" | "done";
+
+const QUALITY_MODULES = [
+  { name:"安全管理", score:79, color:"#FA8C16", icon:"🛡️", issues:["消防通道每月巡检合格率 91%，偶发临时占用","高空作业证查验完成率 87%，需加强外包管控"] },
+  { name:"清洁卫生", score:74, color:"#FF4D4F", icon:"🧹", issues:["楼梯间垃圾积压投诉 23 条/月，高发于低层","地下停车场积水清理响应超时率 34%"] },
+  { name:"绿化养护", score:77, color:"#52C41A", icon:"🌿", issues:["B区草坪裸土面积超标（>5%），已影响景观评分","病虫害月度台账缺 3 次记录，整改中"] },
+  { name:"人员服务", score:85, color:"#1677FF", icon:"👤", issues:["保安仪容仪表抽检合格率 94%，距目标 98% 有差距","大堂管家主动问候率本月提升至 88%，良好"] },
+  { name:"公告设施维护", score:81, color:"#722ED1", icon:"📋", issues:["公告栏内容时效性整改完成率 96%，达标","A栋1楼电梯厅灯带故障待修，工单已派发"] },
+];
+
+function QualityAgentPanel({ onBack }: { onBack: () => void }) {
+  const qColor = "#1677FF";
+  const [convStep, setConvStep] = useState<QualityConvStep>("welcome");
+  const [visibleSteps, setVisibleSteps] = useState<QualityConvStep[]>([]);
+  const [isTyping, setIsTyping] = useState(false);
+  const [inputVal, setInputVal] = useState("帮我发起品质提升项目，我需要看看现在清洁、绿化、车场的评分，然后申请预算和签合同。");
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setVisibleSteps(["welcome"]);
+      setConvStep("user_input");
+    }, 400);
+    return () => clearTimeout(t);
+  }, []);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [visibleSteps, isTyping]);
+
+  function handleSend() {
+    if (convStep !== "user_input") return;
+    setVisibleSteps(v => [...v, "user_input"]);
+    setConvStep("step1");
+    setInputVal("");
+    setIsTyping(true);
+    const seq: QualityConvStep[] = ["step1","step2","step3","step4","step5","step6","done"];
+    let delay = 1200;
+    seq.forEach((s, i) => {
+      setTimeout(() => {
+        if (i > 0) setIsTyping(true);
+        setTimeout(() => {
+          setIsTyping(false);
+          setVisibleSteps(v => [...v, s]);
+          setConvStep(seq[i + 1] ?? "done");
+        }, i === 0 ? 1000 : 1600);
+      }, delay);
+      delay += i < 2 ? 2800 : 3200;
+    });
+  }
+
+  const moduleAvg = Math.round(QUALITY_MODULES.reduce((s, m) => s + m.score, 0) / QUALITY_MODULES.length);
+
+  return (
+    <div className="flex flex-col h-full" style={{ backgroundColor:"#fff" }}>
+      {/* Header */}
+      <div className="flex items-center gap-2 px-3 py-2.5 border-b shrink-0" style={{ borderColor:"#E8E9EB" }}>
+        <button onClick={onBack} className="flex items-center gap-1 text-xs font-medium" style={{ color:qColor }}>
+          <ArrowLeft size={13} />返回 AI 助理
+        </button>
+        <div className="w-px h-4" style={{ backgroundColor:"#E8E9EB" }} />
+        <span className="text-sm font-semibold" style={{ color:"#1F2329" }}>品质助理</span>
+        <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor:"#E6F4FF", color:qColor }}>
+          时代云图（佛山）二期
+        </span>
+      </div>
+
+      {/* Chat area */}
+      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3" style={{ backgroundColor:"#F5F8FF" }}>
+
+        {/* Welcome card */}
+        {visibleSteps.includes("welcome") && (
+          <div className="flex gap-2">
+            <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-white text-xs font-bold" style={{ backgroundColor:qColor }}>品</div>
+            <div className="flex-1 max-w-full space-y-2">
+              <div className="rounded-2xl rounded-tl-sm p-3 text-xs leading-relaxed" style={{ backgroundColor:"#fff", border:"1px solid #E8E9EB" }}>
+                您好！我是品质助理。以下是<b>时代云图（佛山）二期</b>本月品质满意度情况：
+              </div>
+              {/* Score card */}
+              <div className="rounded-xl overflow-hidden" style={{ border:"1px solid #E8E9EB", backgroundColor:"#fff" }}>
+                <div className="px-3 py-2 flex items-center justify-between" style={{ backgroundColor:qColor }}>
+                  <span className="text-xs font-bold text-white">2026年6月 综合满意度评分</span>
+                  <span className="text-xs text-white opacity-80">时代云图（佛山）二期</span>
+                </div>
+                <div className="px-3 pt-3 pb-2 flex items-end gap-3">
+                  <div>
+                    <div className="text-3xl font-bold" style={{ color:qColor }}>82.5</div>
+                    <div className="text-[10px]" style={{ color:DD_GRAY }}>满分 100 分</div>
+                  </div>
+                  <div className="flex-1 space-y-1 mb-1">
+                    <div className="flex items-center gap-1.5 text-[10px]" style={{ color:"#FF4D4F" }}>
+                      <span>▼ 1.0 分</span><span style={{ color:DD_GRAY }}>vs 上月（83.5分）</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[10px]" style={{ color:"#FF4D4F" }}>
+                      <span>▼ 1.5 分</span><span style={{ color:DD_GRAY }}>vs 去年同月（84.0分）</span>
+                    </div>
+                  </div>
+                </div>
+                <div className="px-3 pb-3 grid grid-cols-5 gap-1">
+                  {QUALITY_MODULES.map(m => (
+                    <div key={m.name} className="text-center">
+                      <div className="text-base mb-0.5">{m.icon}</div>
+                      <div className="text-[10px] font-semibold" style={{ color: m.score >= 80 ? "#52C41A" : m.score >= 70 ? "#FA8C16" : "#FF4D4F" }}>{m.score}</div>
+                      <div className="text-[9px] leading-tight" style={{ color:DD_GRAY }}>{m.name.replace("管理","").replace("卫生","").replace("养护","").replace("服务","").replace("设施维护","设施")}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {/* 5-module analysis */}
+              <div className="rounded-xl overflow-hidden" style={{ border:"1px solid #E8E9EB", backgroundColor:"#fff" }}>
+                <div className="px-3 py-2 text-xs font-semibold border-b" style={{ color:"#1F2329", borderColor:"#F0F2F5", backgroundColor:"#F8F9FB" }}>
+                  AI 五大模块现状分析与建议
+                </div>
+                {QUALITY_MODULES.map((m, idx) => (
+                  <div key={m.name} className={`px-3 py-2.5 ${idx < QUALITY_MODULES.length - 1 ? "border-b" : ""}`} style={{ borderColor:"#F0F2F5" }}>
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className="text-sm">{m.icon}</span>
+                      <span className="text-xs font-semibold" style={{ color:"#1F2329" }}>{m.name}</span>
+                      <span className="text-xs font-bold ml-auto" style={{ color: m.score >= 80 ? "#52C41A" : m.score >= 70 ? "#FA8C16" : "#FF4D4F" }}>{m.score}分</span>
+                    </div>
+                    <ul className="space-y-0.5">
+                      {m.issues.map((issue, i) => (
+                        <li key={i} className="text-[10px] leading-snug flex gap-1" style={{ color:DD_GRAY }}>
+                          <span style={{ color:m.color }}>•</span>{issue}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+              <div className="rounded-xl p-2.5 text-[10px] leading-relaxed" style={{ backgroundColor:"#E6F4FF", color:"#0958D9" }}>
+                💡 建议优先整治清洁卫生与绿化养护，二者得分低于均值且投诉量偏高；安全管理和公告设施维护保持现有节奏即可。
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* User message */}
+        {visibleSteps.includes("user_input") && (
+          <div className="flex justify-end">
+            <div className="max-w-[80%] rounded-2xl rounded-tr-sm px-3 py-2 text-xs leading-relaxed text-white" style={{ backgroundColor:qColor }}>
+              帮我发起品质提升项目，我需要看看现在清洁、绿化、车场的评分，然后申请预算和签合同。
+            </div>
+          </div>
+        )}
+
+        {/* AI brief reply */}
+        {visibleSteps.includes("step1") && (
+          <div className="flex gap-2">
+            <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-white text-xs font-bold" style={{ backgroundColor:qColor }}>品</div>
+            <div className="flex-1 space-y-2">
+              <div className="rounded-2xl rounded-tl-sm px-3 py-2 text-xs leading-relaxed" style={{ backgroundColor:"#fff", border:"1px solid #E8E9EB" }}>
+                好的，先从满意度报告拉数据，再走流程。
+              </div>
+              {/* Step 1: Score report */}
+              <div className="rounded-xl overflow-hidden text-xs" style={{ border:"1px solid #E8E9EB", backgroundColor:"#fff" }}>
+                <div className="px-3 py-2 font-semibold border-b flex items-center gap-2" style={{ backgroundColor:"#F8F9FB", borderColor:"#F0F2F5", color:"#1F2329" }}>
+                  <span style={{ color:qColor }}>第一步</span> · 第三方满意度报告数据
+                </div>
+                <div className="p-3">
+                  <div className="font-semibold mb-1" style={{ color:"#1F2329" }}>品质评分报告（满分100分）</div>
+                  <div className="text-[10px] mb-2" style={{ color:DD_GRAY }}>查询周期：2026年6月 ｜ 小区代码：XQ-001</div>
+                  <div className="rounded-lg overflow-hidden" style={{ border:"1px solid #F0F2F5" }}>
+                    {[
+                      { cat:"清洁卫生", score:58, level:"D级", warn:true, items:[["楼梯间","52分","垃圾堆积"],["楼外","48分","死角卫生差"],["停车场","64分","较好"]] },
+                      { cat:"绿化景观", score:52, level:"D级", warn:true, items:[["植物整齐度","45分","杂草多"],["病虫害处理","50分","有蚊虫"],["定期养护","62分","还可以"]] },
+                      { cat:"车场秩序", score:38, level:"E级（严重）", warn:true, red:true, items:[["车位划线","35分","不清楚"],["违停管理","28分","堵塞严重"],["安全通道","45分","偶尔被占用"]] },
+                    ].map((row, ri) => (
+                      <div key={row.cat} className={ri > 0 ? "border-t" : ""} style={{ borderColor:"#F0F2F5" }}>
+                        <div className="flex items-center gap-2 px-3 py-2" style={{ backgroundColor:"#FAFAFA" }}>
+                          <span className="font-semibold" style={{ color:"#1F2329" }}>{row.cat}</span>
+                          <span className="font-bold ml-1" style={{ color: row.red ? "#FF4D4F" : "#FA8C16" }}>{row.score}分</span>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded font-medium" style={{ backgroundColor: row.red ? "#FFF1F0" : "#FFF7E6", color: row.red ? "#FF4D4F" : "#FA8C16" }}>{row.level}</span>
+                          <span className="ml-0.5">{row.red ? "🔴" : "⚠️"}</span>
+                        </div>
+                        {row.items.map(([k, v, note]) => (
+                          <div key={k} className="flex items-center gap-2 px-3 py-1.5 border-t text-[10px]" style={{ borderColor:"#F0F2F5", color:DD_GRAY }}>
+                            <span style={{ color:"#E8E9EB", marginRight:2 }}>├─</span>
+                            <span className="w-14">{k}</span>
+                            <span className="font-semibold" style={{ color:"#1F2329" }}>{v}</span>
+                            <span>{note}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                    <div className="border-t px-3 py-2 flex justify-between text-[10px]" style={{ borderColor:"#F0F2F5" }}>
+                      <span style={{ color:DD_GRAY }}>整体满意度</span>
+                      <span className="font-bold" style={{ color:"#FA8C16" }}>49分 D级</span>
+                    </div>
+                    <div className="border-t px-3 py-2 flex justify-between text-[10px]" style={{ borderColor:"#F0F2F5" }}>
+                      <span style={{ color:DD_GRAY }}>业主投诉数</span>
+                      <span className="font-bold" style={{ color:"#FF4D4F" }}>127条/月 ↑ 环比+15%</span>
+                    </div>
+                  </div>
+                  <div className="mt-2 text-[10px] px-2 py-1.5 rounded-lg" style={{ backgroundColor:"#FFF1F0", color:"#CF1322" }}>
+                    数据截止：2026-06-29 · 清洁/绿化均为D级，车场E级，需立即整治。
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Step 2: Budget form */}
+        {visibleSteps.includes("step2") && (
+          <div className="flex gap-2">
+            <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-white text-xs font-bold" style={{ backgroundColor:qColor }}>品</div>
+            <div className="flex-1">
+              <div className="rounded-xl overflow-hidden text-xs" style={{ border:"1px solid #E8E9EB", backgroundColor:"#fff" }}>
+                <div className="px-3 py-2 font-semibold border-b flex items-center gap-2" style={{ backgroundColor:"#F8F9FB", borderColor:"#F0F2F5", color:"#1F2329" }}>
+                  <span style={{ color:qColor }}>第二步</span> · 流程中心 — 预算申请
+                </div>
+                <div className="p-3 space-y-2">
+                  <div className="font-semibold text-sm mb-2" style={{ color:"#1F2329" }}>预算申请表单</div>
+                  {[
+                    ["项目名称","物业小区品质改善项目"],
+                    ["项目类型","运营提升"],["申请部门","物业运营部"],
+                    ["申请人","周杰祥"],["开始日期","2026-07-01"],["结束日期","2026-12-31"],
+                    ["总预算","¥500,000"],
+                  ].map(([k,v]) => (
+                    <div key={k} className="flex gap-2 text-[10px]">
+                      <span className="w-14 shrink-0" style={{ color:DD_GRAY }}>{k}</span>
+                      <span className="font-medium" style={{ color:"#1F2329" }}>{v}</span>
+                    </div>
+                  ))}
+                  <div className="text-[10px]" style={{ color:DD_GRAY }}>申请理由：根据第三方满意度报告，清洁得分58分、绿化52分、车场38分，均为D/E级。需增配人力、完善设施、建立管理体系，目标8周内达到B级。</div>
+                  <div className="rounded-lg overflow-hidden mt-1" style={{ border:"1px solid #F0F2F5" }}>
+                    <div className="px-3 py-1.5 text-[10px] font-semibold" style={{ backgroundColor:"#F8F9FB", color:"#1F2329" }}>预算明细</div>
+                    {[
+                      ["清洁部分","¥180,000",[["人员增配（3人×6个月）","¥108,000"],["工具/用品升级","¥42,000"],["巡查验收系统","¥30,000"]]],
+                      ["绿化部分","¥130,000",[["养护队伍增配（2人×6个月）","¥95,000"],["材料/设备采购","¥35,000"]]],
+                      ["车场改善","¥180,000",[["基础设施改造","¥120,000"],["管理配置（保安增配）","¥60,000"]]],
+                      ["数据监控系统","¥40,000",[["品质巡查App、日报表系统","¥40,000"]]],
+                    ].map(([cat,total,items]) => (
+                      <div key={cat as string} className="border-t" style={{ borderColor:"#F0F2F5" }}>
+                        <div className="flex justify-between px-3 py-1.5 text-[10px]" style={{ backgroundColor:"#FAFAFA" }}>
+                          <span className="font-medium" style={{ color:"#1F2329" }}>{cat as string}</span>
+                          <span className="font-bold" style={{ color:qColor }}>{total as string}</span>
+                        </div>
+                        {(items as string[][]).map(([k,v]) => (
+                          <div key={k} className="flex justify-between px-3 py-1 border-t text-[10px]" style={{ borderColor:"#F5F5F5", color:DD_GRAY }}>
+                            <span>└─ {k}</span><span>{v}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="text-[10px] space-y-1 mt-1">
+                    <div className="font-semibold" style={{ color:"#1F2329" }}>审批路由</div>
+                    {["物业经理","财务总监","总经理"].map(r => (
+                      <div key={r} className="flex items-center gap-1.5 text-[10px]" style={{ color:DD_GRAY }}>
+                        <span style={{ color:DD_GRAY }}>├─</span><span>{r}</span>
+                        <span className="ml-auto px-1.5 py-0.5 rounded text-[9px]" style={{ backgroundColor:"#FFF7E6", color:"#FA8C16" }}>待审批</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex gap-2 mt-2">
+                    <div className="flex-1 py-1.5 rounded-lg text-[10px] font-semibold text-white text-center" style={{ backgroundColor:qColor }}>提交</div>
+                    <div className="flex-1 py-1.5 rounded-lg text-[10px] font-medium text-center" style={{ border:"1px solid #E8E9EB", color:DD_GRAY }}>保存草稿</div>
+                  </div>
+                  <div className="text-[10px] text-center font-medium" style={{ color:"#52C41A" }}>✓ 预算申请已提交，流程号 BG-2026-06-0847</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Step 3: Approval progress */}
+        {visibleSteps.includes("step3") && (
+          <div className="flex gap-2">
+            <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-white text-xs font-bold" style={{ backgroundColor:qColor }}>品</div>
+            <div className="flex-1">
+              <div className="rounded-xl overflow-hidden text-xs" style={{ border:"1px solid #E8E9EB", backgroundColor:"#fff" }}>
+                <div className="px-3 py-2 font-semibold border-b flex items-center gap-2" style={{ backgroundColor:"#F8F9FB", borderColor:"#F0F2F5", color:"#1F2329" }}>
+                  <span style={{ color:qColor }}>第三步</span> · 流程审批 — 实时进度
+                </div>
+                <div className="p-3 space-y-2">
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold text-[10px]" style={{ color:"#1F2329" }}>流程号：BG-2026-06-0847</span>
+                    <span className="text-[9px] px-1.5 py-0.5 rounded font-medium" style={{ backgroundColor:"#F6FFED", color:"#52C41A" }}>全部通过</span>
+                  </div>
+                  <div className="space-y-2">
+                    {[
+                      { time:"14:32", name:"申请人提交", person:"周杰祥 已提交预算申请", comment:"项目合理，数据充分" },
+                      { time:"14:45", name:"物业经理审批通过", person:"李明 已审批（同意）", comment:"同意。清洁/绿化/车场确实有问题，增配人力必要。" },
+                      { time:"15:20", name:"财务总监审批通过", person:"王芳 已审批（同意）", comment:"预算明细清晰，支出合理。预留20万应急资金。" },
+                      { time:"16:00", name:"总经理审批通过", person:"张董 已审批（同意）", comment:"支持品质提升计划。确保6个月内达到KPI目标。" },
+                    ].map(row => (
+                      <div key={row.time} className="flex gap-2">
+                        <div className="flex flex-col items-center shrink-0">
+                          <div className="w-4 h-4 rounded-full flex items-center justify-center text-white text-[8px] font-bold shrink-0" style={{ backgroundColor:"#52C41A" }}>✓</div>
+                          <div className="w-px flex-1 mt-1" style={{ backgroundColor:"#E8E9EB", minHeight:8 }} />
+                        </div>
+                        <div className="pb-2 flex-1">
+                          <div className="flex gap-1.5 items-baseline">
+                            <span className="text-[9px] font-mono" style={{ color:DD_GRAY }}>[{row.time}]</span>
+                            <span className="text-[10px] font-semibold" style={{ color:"#1F2329" }}>{row.name}</span>
+                          </div>
+                          <div className="text-[10px]" style={{ color:DD_GRAY }}>{row.person}</div>
+                          <div className="text-[10px] mt-0.5 px-2 py-1 rounded" style={{ backgroundColor:"#F8F9FB", color:"#1F2329" }}>意见：{row.comment}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="rounded-lg p-2 text-center" style={{ backgroundColor:"#F6FFED", border:"1px solid #B7EB8F" }}>
+                    <div className="text-xs font-bold" style={{ color:"#52C41A" }}>🎉 预算申请全流程审批通过！</div>
+                    <div className="text-[10px] mt-0.5" style={{ color:"#52A31D" }}>最终批准金额：¥500,000 ｜ 有效期：2026-07-01 ~ 2026-12-31</div>
+                  </div>
+                  <div className="text-[10px] text-center" style={{ color:DD_GRAY }}>审批全部通过了，现在生成合同。</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Step 4: Contract creation */}
+        {visibleSteps.includes("step4") && (
+          <div className="flex gap-2">
+            <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-white text-xs font-bold" style={{ backgroundColor:qColor }}>品</div>
+            <div className="flex-1">
+              <div className="rounded-xl overflow-hidden text-xs" style={{ border:"1px solid #E8E9EB", backgroundColor:"#fff" }}>
+                <div className="px-3 py-2 font-semibold border-b flex items-center gap-2" style={{ backgroundColor:"#F8F9FB", borderColor:"#F0F2F5", color:"#1F2329" }}>
+                  <span style={{ color:qColor }}>第四步</span> · 合同系统 — 新建合同
+                </div>
+                <div className="p-3 space-y-2">
+                  {[
+                    ["合同名称","物业小区品质改善项目 - 清洁服务合同"],
+                    ["合同编号","HT-2026-07-0521"],
+                    ["合同类型","劳务/外包合同"],
+                    ["关联预算","BG-2026-06-0847"],
+                  ].map(([k,v]) => (
+                    <div key={k} className="flex gap-2 text-[10px]">
+                      <span className="w-14 shrink-0" style={{ color:DD_GRAY }}>{k}</span>
+                      <span className="font-medium" style={{ color:"#1F2329" }}>{v}</span>
+                    </div>
+                  ))}
+                  <div className="rounded-lg overflow-hidden" style={{ border:"1px solid #F0F2F5" }}>
+                    {[
+                      { group:"甲方信息", rows:[["公司名称","XX物业公司"],["法定代表人","周杰祥"]] },
+                      { group:"乙方信息", rows:[["公司名称","专业清洁服务公司A"],["法定代表人","李经理"]] },
+                      { group:"服务内容", rows:[["服务范围","楼梯间、楼外、垃圾分类点日常+深度清洁"],["清洁周期","日清2次，周清2次，月深清1次"],["服务单价","¥18,000/月"],["服务周期","6个月"],["小计","¥108,000"]] },
+                      { group:"付款方式", rows:[["付款期数","6期"],["单期金额","¥18,000"],["支付方式","银行转账（月结）"]] },
+                    ].map((sec, si) => (
+                      <div key={sec.group} className={si > 0 ? "border-t" : ""} style={{ borderColor:"#F0F2F5" }}>
+                        <div className="px-3 py-1.5 text-[10px] font-semibold" style={{ backgroundColor:"#F8F9FB", color:"#1F2329" }}>{sec.group}</div>
+                        {sec.rows.map(([k,v]) => (
+                          <div key={k} className="flex gap-2 px-3 py-1 border-t text-[10px]" style={{ borderColor:"#F5F5F5" }}>
+                            <span className="w-16 shrink-0" style={{ color:DD_GRAY }}>{k}</span>
+                            <span style={{ color:"#1F2329" }}>{v}</span>
+                          </div>
+                        ))}
+                      </div>
+                    ))}
+                    <div className="border-t px-3 py-1.5 text-[10px] font-semibold" style={{ borderColor:"#F0F2F5", backgroundColor:"#F8F9FB", color:"#1F2329" }}>质量考核</div>
+                    {[["日清验收合格率","≥95%","不达标扣3%"],["投诉件数","≤5件/月","不达标扣3%"],["出勤率","≥98%","不达标扣3%"]].map(([k,v,p]) => (
+                      <div key={k} className="flex gap-2 px-3 py-1 border-t text-[10px]" style={{ borderColor:"#F5F5F5", color:DD_GRAY }}>
+                        <span className="flex-1">{k}</span><span className="font-medium" style={{ color:"#1F2329" }}>{v}</span><span>{p}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex gap-2">
+                    <div className="flex-1 py-1.5 rounded-lg text-[10px] font-medium text-center" style={{ border:"1px solid #E8E9EB", color:DD_GRAY }}>保存草稿</div>
+                    <div className="flex-1 py-1.5 rounded-lg text-[10px] font-semibold text-white text-center" style={{ backgroundColor:qColor }}>提交签署</div>
+                  </div>
+                  <div className="text-[10px] text-center font-medium" style={{ color:"#52C41A" }}>✓ 合同已生成，编号 HT-2026-07-0521，现在推送给乙方签署。</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Step 5: Signing */}
+        {visibleSteps.includes("step5") && (
+          <div className="flex gap-2">
+            <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-white text-xs font-bold" style={{ backgroundColor:qColor }}>品</div>
+            <div className="flex-1">
+              <div className="rounded-xl overflow-hidden text-xs" style={{ border:"1px solid #E8E9EB", backgroundColor:"#fff" }}>
+                <div className="px-3 py-2 font-semibold border-b flex items-center gap-2" style={{ backgroundColor:"#F8F9FB", borderColor:"#F0F2F5", color:"#1F2329" }}>
+                  <span style={{ color:qColor }}>第五步</span> · 合同签署 — 电子签署流程
+                </div>
+                <div className="p-3 space-y-2">
+                  <div className="flex items-center justify-between text-[10px]">
+                    <span style={{ color:DD_GRAY }}>HT-2026-07-0521</span>
+                    <span className="px-1.5 py-0.5 rounded font-medium" style={{ backgroundColor:"#F6FFED", color:"#52C41A" }}>已全部签署</span>
+                  </div>
+                  <div className="space-y-2">
+                    {[
+                      { time:"16:15", name:"甲方代表 (周杰祥)", status:"done", method:"电子签名" },
+                      { time:"16:30", name:"乙方代表 (李经理)", status:"done", method:"电子签名" },
+                      { time:"16:45", name:"财务审核 (王芳)", status:"done", method:"电子签名" },
+                      { time:"17:00", name:"甲方代表 (周杰祥)", status:"done", method:"电子签名" },
+                    ].map((row, i) => (
+                      <div key={i} className="flex gap-2 items-start">
+                        <div className="flex flex-col items-center shrink-0">
+                          <div className="w-4 h-4 rounded-full flex items-center justify-center text-white text-[8px] font-bold" style={{ backgroundColor:"#52C41A" }}>✓</div>
+                          {i < 3 && <div className="w-px mt-1" style={{ backgroundColor:"#E8E9EB", height:16 }} />}
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex gap-1.5 items-baseline">
+                            <span className="text-[9px] font-mono" style={{ color:DD_GRAY }}>[{row.time}]</span>
+                            <span className="text-[10px] font-semibold" style={{ color:"#1F2329" }}>{row.name}</span>
+                          </div>
+                          <div className="text-[10px]" style={{ color:DD_GRAY }}>签署方式：{row.method}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="rounded-lg p-2 text-center" style={{ backgroundColor:"#F6FFED", border:"1px solid #B7EB8F" }}>
+                    <div className="text-xs font-bold" style={{ color:"#52C41A" }}>🎉 合同已全部签署，合同状态：已生效</div>
+                    <div className="text-[10px] mt-0.5" style={{ color:"#52A31D" }}>生效时间：2026-07-01</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Step 6: Execution confirmation */}
+        {visibleSteps.includes("step6") && (
+          <div className="flex gap-2">
+            <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-white text-xs font-bold" style={{ backgroundColor:qColor }}>品</div>
+            <div className="flex-1">
+              <div className="rounded-xl overflow-hidden text-xs" style={{ border:"1px solid #E8E9EB", backgroundColor:"#fff" }}>
+                <div className="px-3 py-2 font-semibold border-b flex items-center gap-2" style={{ backgroundColor:"#F8F9FB", borderColor:"#F0F2F5", color:"#1F2329" }}>
+                  <span style={{ color:qColor }}>第六步</span> · 合同执行单 &amp; 完整流程总结
+                </div>
+                <div className="p-3 space-y-2">
+                  <div className="font-semibold" style={{ color:"#1F2329" }}>付款计划表</div>
+                  <div className="rounded-lg overflow-hidden" style={{ border:"1px solid #F0F2F5" }}>
+                    <div className="grid grid-cols-4 text-[9px] font-semibold px-2 py-1.5" style={{ backgroundColor:"#F8F9FB", color:DD_GRAY }}>
+                      <span>期次</span><span>应付日期</span><span>应付金额</span><span>状态</span>
+                    </div>
+                    {[1,2,3,4,5,6].map(n => (
+                      <div key={n} className="grid grid-cols-4 text-[10px] px-2 py-1.5 border-t" style={{ borderColor:"#F0F2F5" }}>
+                        <span style={{ color:DD_GRAY }}>第{n}期</span>
+                        <span style={{ color:DD_GRAY }}>2026-0{6+n}-01</span>
+                        <span className="font-medium" style={{ color:"#1F2329" }}>¥18,000</span>
+                        <span className="text-[9px] px-1 py-0.5 rounded text-center" style={{ backgroundColor:"#FFF7E6", color:"#FA8C16" }}>待付</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="font-semibold mt-1" style={{ color:"#1F2329" }}>完整流程时间线</div>
+                  {[
+                    ["14:32","预算申请提交","流程号：BG-2026-06-0847"],
+                    ["15:20","审批通过","批准金额：¥500,000"],
+                    ["16:15","合同生成","合同号：HT-2026-07-0521"],
+                    ["17:00","合同签署完成","生效日期：2026-07-01"],
+                  ].map(([t,n,d]) => (
+                    <div key={t} className="flex gap-2 items-center text-[10px]">
+                      <span className="w-5 h-5 rounded-full text-white text-[8px] font-bold flex items-center justify-center shrink-0" style={{ backgroundColor:"#52C41A" }}>✓</span>
+                      <span className="font-mono text-[9px] shrink-0" style={{ color:DD_GRAY }}>{t}</span>
+                      <span className="font-semibold" style={{ color:"#1F2329" }}>{n}</span>
+                      <span className="ml-auto text-right shrink-0" style={{ color:DD_GRAY }}>{d}</span>
+                    </div>
+                  ))}
+                  <div className="rounded-lg p-2.5 mt-1" style={{ backgroundColor:"#E6F4FF", border:"1px solid #91CAFF" }}>
+                    <div className="text-[10px] font-semibold mb-1" style={{ color:"#0958D9" }}>后续执行</div>
+                    {["财务部生成付款单（月度支付 ¥18,000）","项目经理发起项目启动会","清洁队进场交接","建立品质巡查机制（每周监测KPI）","60天后第一次品质复查"].map(t => (
+                      <div key={t} className="flex items-center gap-1.5 text-[10px] mt-0.5" style={{ color:"#0958D9" }}>
+                        <span style={{ color:"#91CAFF" }}>□</span>{t}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Final message */}
+        {visibleSteps.includes("done") && (
+          <div className="flex gap-2">
+            <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-white text-xs font-bold" style={{ backgroundColor:qColor }}>品</div>
+            <div className="rounded-2xl rounded-tl-sm px-3 py-2 text-xs leading-relaxed" style={{ backgroundColor:"#fff", border:"1px solid #E8E9EB" }}>
+              全流程已完成。预算从申请到批准只用了 <b>2小时</b>，合同从生成到签署完成用了 <b>45分钟</b>。7月1日正式开始执行，后续每周我帮你监测KPI数据。
+            </div>
+          </div>
+        )}
+
+        {/* AI typing indicator */}
+        {isTyping && (
+          <div className="flex gap-2">
+            <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-white text-xs font-bold" style={{ backgroundColor:qColor }}>品</div>
+            <div className="px-3 py-2 rounded-2xl rounded-tl-sm flex items-center gap-1" style={{ backgroundColor:"#fff", border:"1px solid #E8E9EB" }}>
+              {[0,1,2].map(i => (
+                <div key={i} className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ backgroundColor:qColor, animationDelay:`${i*0.15}s` }} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div ref={bottomRef} />
+      </div>
+
+      {/* Input area */}
+      {convStep === "user_input" && (
+        <div className="shrink-0 p-3 border-t" style={{ backgroundColor:"#fff", borderColor:"#E8E9EB" }}>
+          <div className="flex items-end gap-2 rounded-xl p-2" style={{ border:`1px solid ${qColor}60`, backgroundColor:"#F5F8FF" }}>
+            <textarea rows={2} className="flex-1 bg-transparent text-xs outline-none resize-none" value={inputVal}
+              onChange={e => setInputVal(e.target.value)}
+              style={{ color:"#1F2329" }} />
+            <button onClick={handleSend}
+              className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-white"
+              style={{ backgroundColor:qColor }}>
+              <ArrowRight size={13} />
+            </button>
+          </div>
+        </div>
+      )}
+      {convStep !== "user_input" && convStep !== "welcome" && (
+        <div className="shrink-0 px-3 py-2 border-t text-center text-[10px]" style={{ backgroundColor:"#FAFBFC", borderColor:"#E8E9EB", color:DD_GRAY }}>
+          流程演示进行中...
+        </div>
+      )}
+    </div>
+  );
+}
 
 function OrderReviewAgentPanel({ onBack }: { onBack: () => void }) {
   const [step, setStep] = useState<ReviewStep>("scanning");
@@ -3530,6 +4050,10 @@ export default function App() {
               <p className="text-xs" style={{ color:DD_GRAY }}>{h.preview}</p>
             </button>
           ))}
+        </div>
+      ) : activeSubAgent === "quality" ? (
+        <div className="flex-1 overflow-hidden flex flex-col">
+          <QualityAgentPanel onBack={() => setActiveSubAgent(null)} />
         </div>
       ) : activeSubAgent === "contract" ? (
         <ContractAgentPanel
