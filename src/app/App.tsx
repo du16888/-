@@ -3369,7 +3369,8 @@ export default function App() {
                     </div>
                     <p className="text-sm font-semibold leading-snug mb-1" style={{ color:"#1F2329" }}>项目进场7日内交付任务清单</p>
                     <p className="text-xs leading-relaxed mb-2.5" style={{ color:DD_GRAY }}>AI提示：进场关键节点任务，影响整体交付质量，需优先完成</p>
-                    <button className="w-full py-1.5 rounded-lg text-xs font-semibold text-white"
+                    <button onClick={() => { setUrgentPopupVisible(false); setShowEntrySubTasks(true); handleAIAssist(tasks.find(t=>t.id==="t3")!); }}
+                      className="w-full py-1.5 rounded-lg text-xs font-semibold text-white"
                       style={{ backgroundColor:DD_RED }}>立即查看</button>
                   </div>
                 </div>
