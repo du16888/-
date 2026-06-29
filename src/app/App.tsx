@@ -1925,6 +1925,8 @@ function QualityAgentPanel({ onBack }: { onBack: () => void }) {
 function OrderReviewAgentPanel({ onBack }: { onBack: () => void }) {
   const [step, setStep] = useState<ReviewStep>("scanning");
   const [approvedIds, setApprovedIds] = useState<Set<string>>(new Set());
+  const [activeTab, setActiveTab] = useState<"pending" | "approved">("approved");
+  const [isApprovedCollapsed, setIsApprovedCollapsed] = useState(false);
   const agentColor = "#52C41A";
 
   useEffect(() => {
@@ -1960,9 +1962,24 @@ function OrderReviewAgentPanel({ onBack }: { onBack: () => void }) {
           </span>
         )}
         {step === "done" && (
-          <span className="ml-auto text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor:"#F6FFED", color:agentColor }}>
-            8 项已审批 ✓
-          </span>
+          <div className="ml-auto flex items-center gap-0.5 rounded-lg p-0.5" style={{ backgroundColor:"#F0F2F5" }}>
+            <button
+              onClick={() => setActiveTab("pending")}
+              className="text-[11px] px-2.5 py-1 rounded-md font-medium transition-all"
+              style={activeTab === "pending"
+                ? { backgroundColor:"#fff", color:DD_ORANGE, boxShadow:"0 1px 2px rgba(0,0,0,0.10)" }
+                : { color:DD_GRAY, backgroundColor:"transparent" }}>
+              待审批 (1)
+            </button>
+            <button
+              onClick={() => setActiveTab("approved")}
+              className="text-[11px] px-2.5 py-1 rounded-md font-medium transition-all"
+              style={activeTab === "approved"
+                ? { backgroundColor:"#fff", color:agentColor, boxShadow:"0 1px 2px rgba(0,0,0,0.10)" }
+                : { color:DD_GRAY, backgroundColor:"transparent" }}>
+              已审批 (8) ✓
+            </button>
+          </div>
         )}
       </div>
 
@@ -2054,38 +2071,53 @@ function OrderReviewAgentPanel({ onBack }: { onBack: () => void }) {
         )}
 
         {/* ── 已完成 ── */}
-        {step === "done" && (
+        {step === "done" && activeTab === "approved" && (
           <div className="p-3 flex flex-col gap-2">
-            {/* 成功提示 */}
-            <div className="rounded-xl p-3 flex items-center gap-3" style={{ backgroundColor:"#F6FFED", border:`1px solid ${agentColor}40` }}>
-              <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor:`${agentColor}20` }}>
-                <CheckSquare size={18} style={{ color:agentColor }} />
-              </div>
-              <div>
-                <div className="text-sm font-semibold" style={{ color:agentColor }}>8 项审批已完成</div>
-                <div className="text-xs" style={{ color:"#52A31D" }}>请假×2、费用报销×4、装修审批×2，均已自动通过</div>
-              </div>
-            </div>
-
-            {/* 已完成明细 */}
-            {AUTO_ITEMS.map(item => (
-              <div key={item.id} className="bg-white rounded-xl px-3 py-2.5 shadow-sm flex items-center gap-2.5" style={{ border:"1px solid #E8E9EB" }}>
-                <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor:`${agentColor}20` }}>
+            {/* 可收起的已完成区块 */}
+            <div className="rounded-xl overflow-hidden" style={{ border:`1px solid ${agentColor}40` }}>
+              <button
+                onClick={() => setIsApprovedCollapsed(c => !c)}
+                className="w-full px-3 py-2.5 flex items-center gap-2 text-left"
+                style={{ backgroundColor:`${agentColor}10` }}>
+                <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor:`${agentColor}25` }}>
                   <span style={{ color:agentColor, fontSize:10, fontWeight:700 }}>✓</span>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <span className="text-xs font-medium" style={{ color:"#1F2329" }}>{item.applicant}</span>
-                  <span className="text-[10px] ml-1.5" style={{ color:DD_GRAY }}>{item.content}</span>
+                <div className="flex-1">
+                  <span className="text-xs font-semibold" style={{ color:agentColor }}>8 项审批已完成</span>
+                  <span className="text-[10px] ml-2" style={{ color:"#52A31D" }}>请假×2、费用报销×4、装修审批×2</span>
                 </div>
-                <span className="text-[10px] font-medium shrink-0" style={{ color:agentColor }}>已通过</span>
-              </div>
-            ))}
+                <ChevronDown
+                  size={14}
+                  style={{ color:agentColor, transform:isApprovedCollapsed ? "rotate(-90deg)" : "rotate(0deg)", transition:"transform 0.2s" }} />
+              </button>
+              {!isApprovedCollapsed && (
+                <div className="bg-white divide-y" style={{ borderColor:"#F0F2F5" }}>
+                  {AUTO_ITEMS.map(item => (
+                    <div key={item.id} className="flex items-center gap-2.5 px-3 py-2.5">
+                      <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor:`${agentColor}20` }}>
+                        <span style={{ color:agentColor, fontSize:10, fontWeight:700 }}>✓</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-xs font-medium" style={{ color:"#1F2329" }}>{item.applicant}</span>
+                        <span className="text-[10px] ml-1.5" style={{ color:DD_GRAY }}>{item.content}</span>
+                      </div>
+                      <span className="text-[10px] font-medium shrink-0 px-1.5 py-0.5 rounded-full" style={{ backgroundColor:"#F6FFED", color:agentColor }}>已通过</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
 
+        {step === "done" && activeTab === "pending" && (
+          <div className="p-3 flex flex-col gap-2">
             {/* SRM 合同待确认提示 */}
-            <div className="rounded-xl overflow-hidden mt-1" style={{ border:`1px solid ${DD_ORANGE}60` }}>
+            <div className="rounded-xl overflow-hidden" style={{ border:`1px solid ${DD_ORANGE}60` }}>
               <div className="px-3 py-2 flex items-center gap-2" style={{ backgroundColor:DD_ORANGE }}>
                 <AlertCircle size={13} className="text-white shrink-0" />
                 <span className="text-xs font-bold text-white flex-1">SRM 合同审批待确认</span>
+                <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full" style={{ backgroundColor:"rgba(255,255,255,0.25)", color:"#fff" }}>1 项</span>
               </div>
               <div className="bg-white px-3 py-2.5">
                 <p className="text-xs font-semibold mb-0.5" style={{ color:"#1F2329" }}>置信花园城2026年车场改造合同</p>
