@@ -1027,7 +1027,6 @@ function FeeProcessModal({ task, onClose }: { task: Task; onClose: () => void })
 function TaskDetail({ task, onBack, onAI, onInspectionDone, onComplete, onOpenContractAgent }: { task: Task; onBack: () => void; onAI: (t: Task) => void; onInspectionDone?: () => void; onComplete?: () => void; onOpenContractAgent?: () => void }) {
   const sc = statusConfig[task.status];
   const [showWorkOrder, setShowWorkOrder] = useState(false);
-  const [showContractDispatch, setShowContractDispatch] = useState(false);
   const [showFeeProcess, setShowFeeProcess] = useState(false);
   const [showParkingProcess, setShowParkingProcess] = useState(false);
 
@@ -1037,7 +1036,7 @@ function TaskDetail({ task, onBack, onAI, onInspectionDone, onComplete, onOpenCo
   const isParking = task.type === "项目进场";
 
   const handleProcess = () => {
-    if (isContract) setShowContractDispatch(true);
+    if (isContract) onOpenContractAgent?.();
     else if (isFee) setShowFeeProcess(true);
     else if (isParking) setShowParkingProcess(true);
     else setShowWorkOrder(true);
@@ -1046,13 +1045,6 @@ function TaskDetail({ task, onBack, onAI, onInspectionDone, onComplete, onOpenCo
   return (
     <div className="flex flex-col h-full" style={{ backgroundColor:"#fff" }}>
       {showWorkOrder && <WorkOrderModal task={task} onClose={() => setShowWorkOrder(false)} onInspectionDone={onInspectionDone} onComplete={onComplete} />}
-      {showContractDispatch && (
-        <ContractDispatchModal
-          task={task}
-          onDone={() => { setShowContractDispatch(false); onOpenContractAgent?.(); }}
-          onClose={() => setShowContractDispatch(false)}
-        />
-      )}
       {showFeeProcess && <FeeProcessModal task={task} onClose={() => setShowFeeProcess(false)} />}
       {showParkingProcess && <ParkingProcessModal onClose={() => setShowParkingProcess(false)} onComplete={onComplete} />}
 
