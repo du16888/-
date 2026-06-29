@@ -2709,6 +2709,7 @@ export default function App() {
   const [showBpmApproval, setShowBpmApproval] = useState(false);
   const [urgentPopupVisible, setUrgentPopupVisible] = useState(false);
   const [showProjectEntryCard, setShowProjectEntryCard] = useState(false);
+  const [showEntrySubTasks, setShowEntrySubTasks] = useState(false);
   const [completedCards, setCompletedCards] = useState<Set<string>>(new Set());
   const [messages, setMessages] = useState<Message[]>([{
     id:"m0", role:"agent", time:"09:00",
@@ -2822,6 +2823,27 @@ export default function App() {
     setActiveSubAgent("contract");
   };
 
+  const streamMessage = (fullText: string, actionable?: {label:string;prompt:string}[], onDone?: () => void) => {
+    const msgId = "t"+Date.now();
+    const now = new Date().toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit"});
+    setMessages(prev=>[...prev, { id:msgId, role:"agent", content:"", time:"", typing:false }]);
+    let idx = 0;
+    const CHUNK = 4;
+    const INTERVAL = 28;
+    const timer = setInterval(() => {
+      idx = Math.min(idx + CHUNK, fullText.length);
+      const partial = fullText.slice(0, idx);
+      setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: partial, time: idx >= fullText.length ? now : "" } : m));
+      if (idx >= fullText.length) {
+        clearInterval(timer);
+        if (actionable) {
+          setMessages(prev => prev.map(m => m.id === msgId ? { ...m, actionable } : m));
+        }
+        onDone?.();
+      }
+    }, INTERVAL);
+  };
+
   const handleAIAssist = (task: Task) => {
     setLinkedTask(task);
     setHistoryOpen(false);
@@ -2834,27 +2856,25 @@ export default function App() {
     setAITab("chat");
     setActiveSubAgent(null);
     const now = new Date().toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit"});
+    const userMsgId = "u"+Date.now();
     setMessages(prev=>[...prev,
-      { id:"u"+Date.now(), role:"user", content:`请帮我分析并处理任务：「${task.title}」`, time:now },
-      { id:"t"+Date.now(), role:"agent", content:"", time:"", typing:true },
+      { id:userMsgId, role:"user", content:`请帮我分析并处理任务：「${task.title}」`, time:now },
     ]);
-    setTimeout(()=>{
-      let content: string;
-      let actionable: {label:string;prompt:string}[] | undefined;
-      if (task.type === "项目进场") {
-        content = `📋 已为您扫描「时代云图（佛山）二期」接管后 7 日内全部进场任务，共 10 项：\n\n✅ 已完成（7 项）\n① 组织新项目进场沟通会\n② 财务 NC、收费系统账套建立与配置\n③ 进场方案制定\n④ 项目人员配置\n⑤ 新设立分公司或子公司\n⑥ 支付中心开户\n⑦ 新开银行账号\n\n⏳ 未完成（3 项）——当前角色待处理\n━━\n① 物业管理用房接收\n   截止：2026-07-01\n   完成标准：清洁、换锁、文件柜上锁\n━━\n② 停车场经营方案制定\n   截止：2026-06-24 ⚠️ 即将超期\n   完成标准：制定定价方案并完成审批（前提：车场已竣备交付）\n━━\n③ 停车场启动收费\n   截止：2026-07-08\n   完成标准：开通二维码缴费，更换P牌\n\n建议优先处理「停车场经营方案制定」，截止日期最近。点击左侧任务卡片「去处理」可启动 AI 辅助定价方案流程。`;
-        actionable = [
-          { label: "🅿️ 立即处理：停车场经营方案", prompt: "请帮我处理停车场经营方案制定" },
-          { label: "🏠 物业管理用房接收流程", prompt: "物业管理用房接收需要做什么" },
-          { label: "📊 查看完整进场任务清单", prompt: "查看全部进场任务" },
-        ];
-      } else {
+    if (task.type === "项目进场") {
+      const fullText = `📋 已为您扫描「时代云图（佛山）二期」接管后 7 日内全部进场任务，共 10 项：\n\n✅ 已完成（7 项）\n① 组织新项目进场沟通会\n② 财务 NC、收费系统账套建立与配置\n③ 进场方案制定\n④ 项目人员配置\n⑤ 新设立分公司或子公司\n⑥ 支付中心开户\n⑦ 新开银行账号\n\n⏳ 未完成（3 项）——当前角色待处理\n━━\n① 物业管理用房接收\n   截止：2026-07-01\n   完成标准：清洁、换锁、文件柜上锁\n━━\n② 停车场经营方案制定\n   截止：2026-06-24 ⚠️ 即将超期\n   完成标准：制定定价方案并完成审批（前提：车场已竣备交付）\n━━\n③ 停车场启动收费\n   截止：2026-07-08\n   完成标准：开通二维码缴费，更换P牌\n\n建议优先处理「停车场经营方案制定」，截止日期最近。点击下方按钮可启动 AI 辅助定价方案流程。`;
+      const actionable = [
+        { label: "🅿️ 立即处理：停车场经营方案", prompt: "请帮我处理停车场经营方案制定" },
+        { label: "🏠 物业管理用房接收流程", prompt: "物业管理用房接收需要做什么" },
+        { label: "📊 查看完整进场任务清单", prompt: "查看全部进场任务" },
+      ];
+      setTimeout(() => streamMessage(fullText, actionable), 400);
+    } else {
+      setMessages(prev=>[...prev, { id:"tp"+Date.now(), role:"agent", content:"", time:"", typing:true }]);
+      setTimeout(()=>{
         const reply = buildAIReply(task);
-        content = reply.content;
-        actionable = reply.actionable;
-      }
-      setMessages(prev=>prev.map(m=>m.typing?{ ...m, typing:false, content, time:now, actionable }:m));
-    }, 1400);
+        setMessages(prev=>prev.map(m=>m.typing?{ ...m, typing:false, content:reply.content, time:now, actionable:reply.actionable }:m));
+      }, 1400);
+    }
   };
 
   const handleInspectionDone = () => {
@@ -2943,7 +2963,8 @@ export default function App() {
                 </div>
                 {/* 项目进场任务 - 动态出现 */}
                 {showProjectEntryCard && !completedCards.has("mc-project-entry") && (
-                <div onClick={() => { setDetailTask(tasks.find(t=>t.id==="t3")||null); handleAIAssist(tasks.find(t=>t.id==="t3")!); }}
+                <>
+                <div onClick={() => { setShowEntrySubTasks(true); handleAIAssist(tasks.find(t=>t.id==="t3")!); }}
                   className="bg-white rounded-xl p-3 mb-2 shadow-sm cursor-pointer"
                   style={{ border:"1px solid #FFD6D6", borderLeft:`3px solid ${DD_RED}`,
                     animation: "slideDownFade 0.4s cubic-bezier(0.34,1.56,0.64,1) both" }}>
@@ -2956,11 +2977,28 @@ export default function App() {
                       <p className="text-sm font-semibold leading-snug mb-1" style={{ color:"#1F2329" }}>项目进场7日内交付任务清单</p>
                       <p className="text-xs leading-relaxed" style={{ color:DD_GRAY }}>AI提示：进场关键节点任务，影响整体交付质量，需优先完成</p>
                     </div>
-                    <button onClick={e => { e.stopPropagation(); setDetailTask(tasks.find(t=>t.id==="t3")||null); handleAIAssist(tasks.find(t=>t.id==="t3")!); }}
+                    <button onClick={e => { e.stopPropagation(); setShowEntrySubTasks(true); handleAIAssist(tasks.find(t=>t.id==="t3")!); }}
                       className="shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-medium text-white self-center"
-                      style={{ backgroundColor:DD_RED }}>查看</button>
+                      style={{ backgroundColor:DD_RED }}>去处理</button>
                   </div>
                 </div>
+                {showEntrySubTasks && (
+                  <div className="ml-3 mb-2 space-y-1.5" style={{ borderLeft:`2px solid ${DD_RED}30`, paddingLeft:10, animation:"slideDownFade 0.3s ease both" }}>
+                    {[
+                      { title:"物业管理用房接收", deadline:"07-01", tag:"进行中" },
+                      { title:"停车场经营方案制定", deadline:"06-24 ⚠️", tag:"即将超期", urgent:true },
+                      { title:"停车场启动收费", deadline:"07-08", tag:"待处理" },
+                    ].map(sub=>(
+                      <div key={sub.title} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white"
+                        style={{ border:`1px solid ${sub.urgent ? "#FFD6D6" : "#E8E9EB"}`, cursor:"default" }}>
+                        <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: sub.urgent ? DD_RED : DD_ORANGE }} />
+                        <span className="text-xs flex-1" style={{ color:"#1F2329" }}>{sub.title}</span>
+                        <span className="text-[10px] shrink-0" style={{ color: sub.urgent ? DD_RED : DD_GRAY }}>{sub.deadline}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                </>
                 )}
                 {/* BPM 装修审批 */}
                 {!completedCards.has("mc-bpm-decoration") && (
