@@ -2026,14 +2026,6 @@ function OrderReviewAgentPanel({ onBack }: { onBack: () => void }) {
                   </button>
                 </div>
               )}
-              {/* After auto done, show SRM button if not yet viewed */}
-              {phase === "auto_done" && !bubbles.includes("user_srm") && (
-                <button onClick={handleSrmView}
-                  className="w-full py-2 rounded-xl text-xs font-medium border flex items-center justify-center gap-1.5"
-                  style={{ borderColor:"#E8E9EB", color:"#1F2329", backgroundColor:"#fff" }}>
-                  <AlertCircle size={12} style={{ color:DD_ORANGE }} />查看 SRM 合同详情 →
-                </button>
-              )}
             </div>
           </div>
         )}
@@ -2077,9 +2069,18 @@ function OrderReviewAgentPanel({ onBack }: { onBack: () => void }) {
         {bubbles.includes("auto_done_msg") && (
           <div className="flex gap-2">
             <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-white text-xs font-bold" style={{ backgroundColor:agentColor }}>审</div>
-            <div className="rounded-2xl rounded-tl-sm px-3 py-2.5 text-xs leading-relaxed" style={{ backgroundColor:"#fff", border:"1px solid #E8E9EB" }}>
-              🎉 <b>8 项已全部审批通过</b>——请假×2、费用报销×4、装修审批×2，均已自动处理完毕。<br />
-              <span style={{ color:DD_ORANGE }}>SRM合同审批还需您人工确认，点击上方按钮查看详情。</span>
+            <div className="flex-1 space-y-2">
+              <div className="rounded-2xl rounded-tl-sm px-3 py-2.5 text-xs leading-relaxed" style={{ backgroundColor:"#fff", border:"1px solid #E8E9EB" }}>
+                🎉 <b>8 项已全部审批通过</b>——请假×2、费用报销×4、装修审批×2，均已自动处理完毕。<br /><br />
+                <span style={{ color:DD_ORANGE }}>还剩 <b>1 项 SRM 合同审批</b>待处理。AI 已完成法务分析，发现 2 处条款冲突，可辅助您人工审核。</span>
+              </div>
+              {!bubbles.includes("user_srm") && (
+                <button onClick={handleSrmView}
+                  className="w-full py-2 rounded-xl text-xs font-medium flex items-center justify-center gap-1.5"
+                  style={{ border:`1px solid ${DD_ORANGE}`, color:DD_ORANGE, backgroundColor:"#FFF7E6" }}>
+                  <AlertCircle size={12} />查看 SRM 合同 · AI 辅助审单 →
+                </button>
+              )}
             </div>
           </div>
         )}
