@@ -1908,7 +1908,7 @@ function QualityAgentPanel({ onBack }: { onBack: () => void }) {
             <button onClick={handleSend}
               className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-white"
               style={{ backgroundColor:qColor }}>
-              <ArrowRight size={13} />
+              <Send size={12} />
             </button>
           </div>
         </div>
