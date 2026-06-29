@@ -67,6 +67,7 @@ const tasks: Task[] = [
   { id:"t3", project:PROJECT, title:"停车场经营方案制定", type:"项目进场", status:"new", assignee:"项目经理", deadline:"进场后7天内", dept:"项目管理部", tags:["空间运营","公共资源"], desc:"停车场经营方案制定，并完成定价方案审批（前提为车场已竣备交付）", priority:"medium", steps:["提交审批内容","AI协助检查","AI检查完成提交流程审批"] },
   { id:"t4", project:PROJECT, title:"网格化日常安全巡查", type:"巡检任务", status:"new", assignee:"网格-建筑维修组", deadline:"2026.06.25", desc:"网格化建筑维修组日常巡查任务，需对各网格内终端设备进行清点，记录损耗情况，处理巡查中发现的工单问题，确保24小时内响应。", priority:"medium", steps:["开始网格巡查","语音记录问题与终端清点","AI识别生成工单和清点报告","提交并继续下一网格"] },
   { id:"t6", project:PROJECT, title:"业主满意度回访客户跟进", type:"客户跟进", status:"processing", assignee:"客服部", deadline:"2026.06.28", desc:"针对上季度满意度调研中有投诉反馈的业主进行复访跟进，了解问题解决情况，记录业主意见并汇总分析结果，提交管理层用于服务改善参考。", priority:"medium", steps:["整理上季度满意度数据","制定回访话术","执行电话回访","汇总反馈报告"] },
+  { id:"t7", project:"时代邻里西南区域二公司", title:"置信花园城2026年车场改造合同审批", type:"合同审批", status:"urgent", assignee:"王莉", deadline:"2026.06.29", desc:"SRM合同审批：置信花园城2026年车场改造合同（HTBM-2026041400015），签约金额¥13,000，AI法务智能体已识别2处条款冲突风险，需人工确认后完成审批。", priority:"high" },
 ];
 
 const historyChats = [
@@ -1377,6 +1378,296 @@ function AgentIframePage({ agentKey, onBack }: { agentKey:string; onBack:()=>voi
               style={{ backgroundColor:color, animationDelay:`${i*0.2}s` }} />
           ))}
         </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Order Review Agent Panel ────────────────────────────────────────────────
+type ReviewStep = "scanning" | "review" | "approving" | "done" | "srm";
+
+const AUTO_ITEMS = [
+  { id:"l1", tag:"请假申请", tagColor:"#13C2C2", icon:"📅", applicant:"张伟", dept:"工程部",     content:"年假申请 · 2天（2026-06-30 ~ 2026-07-01）", rule:"假期余额充足，符合请假规定，上级已知会" },
+  { id:"l2", tag:"请假申请", tagColor:"#13C2C2", icon:"📅", applicant:"李思成", dept:"客服部",   content:"病假申请 · 1天（2026-06-29），附医院证明",   rule:"已提交病假证明，符合公司相关规定" },
+  { id:"e1", tag:"费用报销", tagColor:"#722ED1", icon:"💰", applicant:"陈晓梅", dept:"客服部",   content:"业主回访餐饮费 ¥320，发票齐全",             rule:"金额在500元授权范围内，科目正确" },
+  { id:"e2", tag:"费用报销", tagColor:"#722ED1", icon:"💰", applicant:"王浩天", dept:"工程部",   content:"维修材料采购 ¥1,840，附采购凭证",           rule:"附发票及采购单，金额在2000元授权内" },
+  { id:"e3", tag:"费用报销", tagColor:"#722ED1", icon:"💰", applicant:"赵敏华", dept:"行政部",   content:"办公用品采购 ¥560，已提交发票",             rule:"科目匹配，金额合规，附件完整" },
+  { id:"e4", tag:"费用报销", tagColor:"#722ED1", icon:"💰", applicant:"刘建国", dept:"安保部",   content:"外出培训交通费 ¥275",                       rule:"符合差旅规定，金额合规" },
+  { id:"r1", tag:"装修审批", tagColor:"#FA8C16", icon:"🏠", applicant:"1栋803室业主", dept:"时代云图（佛山）二期", content:"普通装修 · 工期15天，材料单已提交",   rule:"材料合规，押金已缴纳，符合小区装修规范" },
+  { id:"r2", tag:"装修审批", tagColor:"#FA8C16", icon:"🏠", applicant:"3栋1202室业主", dept:"时代云图（佛山）二期", content:"墙体改造 · 非承重墙，附设计图",       rule:"非承重结构，设计图合规，押金已缴纳" },
+];
+
+const SRM_ISSUES = [
+  { no:1, label:"条款冲突", clauses:"第9.1条 × 第9.1.2条", desc:"合同约定总工期30天，但竣工日期（2026-04-21）与开工日期（2026-04-20）仅相差1天，实际工期与约定严重冲突，无法确定统一执行标准。" },
+  { no:2, label:"条款冲突", clauses:"第8.1.2.1条 × 第8.1.2.2条", desc:"付款义务以政府主管部门审批作为前提，与8.1.2.2条验收合格后30日内付款的约定互相矛盾，导致付款时间不明确。" },
+];
+
+function OrderReviewAgentPanel({ onBack }: { onBack: () => void }) {
+  const [step, setStep] = useState<ReviewStep>("scanning");
+  const [approvedIds, setApprovedIds] = useState<Set<string>>(new Set());
+  const agentColor = "#52C41A";
+
+  useEffect(() => {
+    if (step === "scanning") {
+      const t = setTimeout(() => setStep("review"), 1600);
+      return () => clearTimeout(t);
+    }
+    if (step === "approving") {
+      const t = setTimeout(() => {
+        setApprovedIds(new Set(AUTO_ITEMS.map(i => i.id)));
+        setStep("done");
+      }, 1400);
+      return () => clearTimeout(t);
+    }
+  }, [step]);
+
+  const tagGroups: Record<string, number> = {};
+  AUTO_ITEMS.forEach(i => { tagGroups[i.tag] = (tagGroups[i.tag] || 0) + 1; });
+  const groupSummary = Object.entries(tagGroups).map(([tag, n]) => `${tag}×${n}`).join("、");
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Header */}
+      <div className="flex items-center gap-2 px-3 py-2.5 border-b shrink-0" style={{ backgroundColor:"#fff", borderColor:"#E8E9EB" }}>
+        <button onClick={onBack} className="flex items-center gap-1 text-xs font-medium" style={{ color:DD_BLUE }}>
+          <ArrowLeft size={13} />返回 AI 助理
+        </button>
+        <div className="w-px h-4" style={{ backgroundColor:"#E8E9EB" }} />
+        <span className="text-sm font-semibold" style={{ color:"#1F2329" }}>审单助理</span>
+        {step === "review" && (
+          <span className="ml-auto text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor:"#F6FFED", color:agentColor }}>
+            9 项待审批
+          </span>
+        )}
+        {step === "done" && (
+          <span className="ml-auto text-xs px-2 py-0.5 rounded-full font-medium" style={{ backgroundColor:"#F6FFED", color:agentColor }}>
+            8 项已审批 ✓
+          </span>
+        )}
+      </div>
+
+      {/* Body */}
+      <div className="flex-1 overflow-y-auto" style={{ backgroundColor:"#F5F8FF" }}>
+
+        {/* ── 扫描中 ── */}
+        {step === "scanning" && (
+          <div className="flex flex-col items-center justify-center h-full gap-5 py-12">
+            <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ backgroundColor:`${agentColor}18` }}>
+              <div className="w-9 h-9 border-[3px] rounded-full animate-spin" style={{ borderColor:`${agentColor}30`, borderTopColor:agentColor }} />
+            </div>
+            <div className="text-sm font-semibold" style={{ color:"#1F2329" }}>AI 审单助理正在扫描待审批事项...</div>
+            <div className="space-y-1.5 text-center">
+              {["扫描请假申请","核查费用报销凭证","比对装修规范","检索SRM合同条款"].map((t,i) => (
+                <div key={t} className="text-xs flex items-center justify-center gap-1.5" style={{ color:DD_GRAY }}>
+                  <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor:agentColor, animationDelay:`${i*0.25}s` }} />
+                  {t}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ── 审批列表 ── */}
+        {(step === "review" || step === "approving") && (
+          <div className="p-3 flex flex-col gap-2">
+            {/* AI 摘要 */}
+            <div className="rounded-xl p-3" style={{ backgroundColor:`${agentColor}12`, border:`1px solid ${agentColor}30` }}>
+              <div className="flex items-center gap-1.5 mb-1">
+                <Zap size={13} style={{ color:agentColor }} />
+                <span className="text-xs font-semibold" style={{ color:agentColor }}>AI 审核完成</span>
+              </div>
+              <p className="text-xs leading-relaxed" style={{ color:"#1F2329" }}>
+                共扫描到 <b>9 项</b>待审批事项：<b>{groupSummary}</b>，符合公司规定，AI 建议通过；<b>SRM合同审批×1</b> 发现 <span style={{ color:DD_ORANGE }}>2 处条款冲突</span>，需您人工确认。
+              </p>
+            </div>
+
+            {/* 8 个可自动审批项 */}
+            <div className="text-xs font-semibold px-1 mb-0.5 flex items-center gap-1.5" style={{ color:"#1F2329" }}>
+              <CheckSquare size={12} style={{ color:agentColor }} />
+              以下 8 项 AI 已核查，建议一键通过
+            </div>
+            {AUTO_ITEMS.map(item => (
+              <div key={item.id} className="bg-white rounded-xl p-3 shadow-sm" style={{ border:"1px solid #E8E9EB" }}>
+                <div className="flex items-start gap-2.5">
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-base" style={{ backgroundColor:`${item.tagColor}15` }}>
+                    {item.icon}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
+                      <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full" style={{ backgroundColor:`${item.tagColor}15`, color:item.tagColor }}>{item.tag}</span>
+                      <span className="text-xs font-semibold" style={{ color:"#1F2329" }}>{item.applicant}</span>
+                      <span className="text-[10px]" style={{ color:DD_GRAY }}>{item.dept}</span>
+                    </div>
+                    <p className="text-xs leading-snug mb-1" style={{ color:"#1F2329" }}>{item.content}</p>
+                    <p className="text-[10px] leading-snug" style={{ color:DD_GRAY }}>
+                      <span style={{ color:agentColor }}>✓ 规则核查：</span>{item.rule}
+                    </p>
+                  </div>
+                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 self-start" style={{ backgroundColor:"#F6FFED", color:agentColor }}>建议通过</span>
+                </div>
+              </div>
+            ))}
+
+            {/* SRM 合同 — 需人工 */}
+            <div className="text-xs font-semibold px-1 mb-0.5 flex items-center gap-1.5" style={{ color:"#1F2329" }}>
+              <AlertCircle size={12} style={{ color:DD_ORANGE }} />
+              以下 1 项发现风险，需您人工确认
+            </div>
+            <div className="bg-white rounded-xl p-3 shadow-sm" style={{ border:`1px solid ${DD_ORANGE}50`, borderLeft:`3px solid ${DD_ORANGE}` }}>
+              <div className="flex items-start gap-2.5">
+                <div className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0 text-base" style={{ backgroundColor:"#FFF7E6" }}>📝</div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 mb-0.5">
+                    <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full" style={{ backgroundColor:"#FFF7E6", color:DD_ORANGE }}>SRM合同审批</span>
+                    <span className="text-xs font-semibold" style={{ color:"#1F2329" }}>王莉</span>
+                    <span className="text-[10px]" style={{ color:DD_GRAY }}>客户服务处</span>
+                  </div>
+                  <p className="text-xs leading-snug mb-1" style={{ color:"#1F2329" }}>置信花园城2026年车场改造合同 · ¥13,000</p>
+                  <p className="text-[10px] leading-snug" style={{ color:DD_ORANGE }}>⚠ AI识别到 2 处条款冲突，建议审批前确认</p>
+                </div>
+                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded-full shrink-0 self-start" style={{ backgroundColor:"#FFF7E6", color:DD_ORANGE }}>待确认</span>
+              </div>
+            </div>
+
+            {/* 一键审批按钮 */}
+            <button
+              className="w-full py-3 rounded-xl text-sm font-semibold text-white mt-1 flex items-center justify-center gap-2"
+              style={{ backgroundColor: step === "approving" ? `${agentColor}80` : agentColor }}
+              disabled={step === "approving"}
+              onClick={() => setStep("approving")}>
+              {step === "approving" ? (
+                <>
+                  <div className="w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor:"#ffffff40", borderTopColor:"#fff" }} />
+                  正在审批中...
+                </>
+              ) : "✓ 一键审批（8 项 AI 可自动通过）"}
+            </button>
+            <p className="text-center text-[10px]" style={{ color:DD_GRAY }}>SRM 合同需单独确认，不包含在一键审批中</p>
+          </div>
+        )}
+
+        {/* ── 已完成 ── */}
+        {step === "done" && (
+          <div className="p-3 flex flex-col gap-2">
+            {/* 成功提示 */}
+            <div className="rounded-xl p-3 flex items-center gap-3" style={{ backgroundColor:"#F6FFED", border:`1px solid ${agentColor}40` }}>
+              <div className="w-9 h-9 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor:`${agentColor}20` }}>
+                <CheckSquare size={18} style={{ color:agentColor }} />
+              </div>
+              <div>
+                <div className="text-sm font-semibold" style={{ color:agentColor }}>8 项审批已完成</div>
+                <div className="text-xs" style={{ color:"#52A31D" }}>请假×2、费用报销×4、装修审批×2，均已自动通过</div>
+              </div>
+            </div>
+
+            {/* 已完成明细 */}
+            {AUTO_ITEMS.map(item => (
+              <div key={item.id} className="bg-white rounded-xl px-3 py-2.5 shadow-sm flex items-center gap-2.5" style={{ border:"1px solid #E8E9EB" }}>
+                <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor:`${agentColor}20` }}>
+                  <span style={{ color:agentColor, fontSize:10, fontWeight:700 }}>✓</span>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <span className="text-xs font-medium" style={{ color:"#1F2329" }}>{item.applicant}</span>
+                  <span className="text-[10px] ml-1.5" style={{ color:DD_GRAY }}>{item.content}</span>
+                </div>
+                <span className="text-[10px] font-medium shrink-0" style={{ color:agentColor }}>已通过</span>
+              </div>
+            ))}
+
+            {/* SRM 合同待确认提示 */}
+            <div className="rounded-xl overflow-hidden mt-1" style={{ border:`1px solid ${DD_ORANGE}60` }}>
+              <div className="px-3 py-2 flex items-center gap-2" style={{ backgroundColor:DD_ORANGE }}>
+                <AlertCircle size={13} className="text-white shrink-0" />
+                <span className="text-xs font-bold text-white flex-1">SRM 合同审批待确认</span>
+              </div>
+              <div className="bg-white px-3 py-2.5">
+                <p className="text-xs font-semibold mb-0.5" style={{ color:"#1F2329" }}>置信花园城2026年车场改造合同</p>
+                <p className="text-[10px] mb-1" style={{ color:DD_GRAY }}>申请人：王莉 · 签约金额：¥13,000 · 合同编号：HTBM-2026041400015</p>
+                <p className="text-[10px] mb-2.5" style={{ color:DD_ORANGE }}>⚠ AI 已识别 2 处条款冲突，建议审批前查阅详情</p>
+                <button onClick={() => setStep("srm")}
+                  className="w-full py-2 rounded-lg text-xs font-semibold text-white"
+                  style={{ backgroundColor:DD_ORANGE }}>
+                  AI 辅助审批 SRM 合同 →
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ── SRM 合同详情 ── */}
+        {step === "srm" && (
+          <div className="p-3 flex flex-col gap-3">
+            {/* 合同基础信息 */}
+            <div className="bg-white rounded-xl overflow-hidden shadow-sm" style={{ border:"1px solid #E8E9EB" }}>
+              <div className="px-3 py-2 border-b flex items-center gap-2" style={{ backgroundColor:"#F8F9FB", borderColor:"#E8E9EB" }}>
+                <FileText size={13} style={{ color:DD_BLUE }} />
+                <span className="text-xs font-semibold" style={{ color:"#1F2329" }}>合同基本信息</span>
+                <span className="ml-auto text-[10px] font-medium px-1.5 py-0.5 rounded-full" style={{ backgroundColor:DD_BLUE_LIGHT, color:DD_BLUE }}>SRM合同审批</span>
+              </div>
+              {[
+                ["合同名称","置信花园城2026年车场改造合同"],
+                ["合同编号","HTBM-2026041400015"],
+                ["申请人","王莉 · 客户服务处"],
+                ["申请公司","时代邻里西南区域二公司"],
+                ["甲方","成都合智商务服务有限公司绵阳分公司"],
+                ["乙方","众畅科技有限公司"],
+                ["签约金额","¥13,000.00"],
+                ["合同类型","智能化工程 / 停车场工程"],
+                ["合同期限","2026-04-20 ~ 2026-04-21"],
+                ["单据类型","标准合同 · 普通合同"],
+              ].map(([k,v]) => (
+                <div key={k} className="flex items-start gap-2 px-3 py-2 border-b last:border-0" style={{ borderColor:"#F0F2F5" }}>
+                  <span className="text-[10px] shrink-0 w-16 pt-0.5" style={{ color:DD_GRAY }}>{k}</span>
+                  <span className="text-xs font-medium flex-1" style={{ color:"#1F2329" }}>{v}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* AI 法务分析 */}
+            <div className="rounded-xl overflow-hidden" style={{ border:`1px solid ${DD_ORANGE}50` }}>
+              <div className="px-3 py-2 flex items-center gap-2" style={{ backgroundColor:DD_ORANGE }}>
+                <AlertCircle size={13} className="text-white shrink-0" />
+                <span className="text-xs font-bold text-white">AI 法务智能分析 · 发现 2 处风险</span>
+              </div>
+              <div className="bg-white divide-y" style={{ borderColor:"#FFF7E6" }}>
+                {SRM_ISSUES.map(issue => (
+                  <div key={issue.no} className="px-3 py-3">
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className="text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center text-white shrink-0" style={{ backgroundColor:DD_ORANGE }}>
+                        {issue.no}
+                      </span>
+                      <span className="text-xs font-semibold" style={{ color:DD_ORANGE }}>【{issue.label}】</span>
+                      <span className="text-[10px] font-medium px-1.5 py-0.5 rounded" style={{ backgroundColor:"#FFF7E6", color:DD_ORANGE }}>{issue.clauses}</span>
+                    </div>
+                    <p className="text-xs leading-relaxed ml-7" style={{ color:"#1F2329" }}>{issue.desc}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 审批建议 */}
+            <div className="rounded-xl p-3" style={{ backgroundColor:"#FFF7E6", border:`1px solid ${DD_ORANGE}40` }}>
+              <div className="text-xs font-semibold mb-1" style={{ color:DD_ORANGE }}>AI 审批建议</div>
+              <p className="text-xs leading-relaxed" style={{ color:"#874D00" }}>
+                建议在审批通过前，要求申请人对上述 2 处条款冲突进行书面说明或补充协议，明确工期与付款条件后再行签署，以避免后续履约争议。
+              </p>
+            </div>
+
+            {/* 操作按钮 */}
+            <div className="flex gap-2">
+              <button className="flex-1 py-2.5 rounded-xl text-xs font-semibold border" style={{ borderColor:"#E8E9EB", color:"#1F2329", backgroundColor:"#fff" }}
+                onClick={() => setStep("done")}>
+                ← 返回审批列表
+              </button>
+              <button className="flex-1 py-2.5 rounded-xl text-xs font-semibold text-white" style={{ backgroundColor:DD_ORANGE }}>
+                退回申请人修改
+              </button>
+              <button className="flex-1 py-2.5 rounded-xl text-xs font-semibold text-white" style={{ backgroundColor:agentColor }}>
+                确认并通过
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -2729,7 +3020,7 @@ export default function App() {
 
   const completeCard = (id: string) => { setCompletedCards(prev => new Set([...prev, id])); setDetailTask(null); };
 
-  const urgentVisible = [...(showProjectEntryCard ? ["mc-project-entry"] : []), "mc-bpm-decoration", "mc-t1"].filter(id => !completedCards.has(id));
+  const urgentVisible = [...(showProjectEntryCard ? ["mc-project-entry"] : []), "mc-bpm-decoration", "mc-t1", "mc-srm-approval"].filter(id => !completedCards.has(id));
   const todayVisible  = ["mc-inspection"].filter(id => !completedCards.has(id));
   const followVisible = ["mc-announcement", "mc-t6", "mc-q2-approval"].filter(id => !completedCards.has(id));
   const totalVisible  = urgentVisible.length + todayVisible.length + followVisible.length;
@@ -2851,6 +3142,11 @@ export default function App() {
     // Contract tasks jump straight to the contract agent — no chat confirmation needed
     if (task.type === "合同签订") {
       setActiveSubAgent("contract");
+      return;
+    }
+    // 合同审批 tasks jump to the order-review agent
+    if (task.type === "合同审批") {
+      setActiveSubAgent("order-review");
       return;
     }
     setAITab("chat");
@@ -3040,9 +3336,27 @@ export default function App() {
                   </div>
                 </div>
                 )}
+                {/* SRM 合同审批 */}
+                {!completedCards.has("mc-srm-approval") && (
+                <div onClick={() => handleAIAssist(tasks.find(t=>t.id==="t7")!)}
+                  className="bg-white rounded-xl p-3 mb-2 shadow-sm cursor-pointer"
+                  style={{ border:"1px solid #FFD6D6", borderLeft:`3px solid ${DD_RED}` }}>
+                  <div className="flex items-start gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded" style={{ backgroundColor:DD_RED_LIGHT, color:DD_RED }}>审批</span>
+                        <span className="text-[10px] font-medium" style={{ color:DD_RED }}>待您审批</span>
+                      </div>
+                      <p className="text-sm font-semibold leading-snug mb-1" style={{ color:"#1F2329" }}>SRM合同审批 · 置信花园城车场改造合同</p>
+                      <p className="text-xs leading-relaxed" style={{ color:DD_GRAY }}>AI法务智能体识别到2处条款冲突风险，另含8项常规审批可一键处理</p>
+                    </div>
+                    <button onClick={e => { e.stopPropagation(); handleAIAssist(tasks.find(t=>t.id==="t7")!); }}
+                      className="shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-medium text-white self-center"
+                      style={{ backgroundColor:DD_RED }}>去审批</button>
+                  </div>
+                </div>
+                )}
               </div>
-
-              {/* 🟡 今日完成 */}
               <div>
                 <div className="flex items-center gap-1.5 mb-2">
                   <span className="text-[11px] font-bold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor:DD_ORANGE }}>今日完成</span>
@@ -3219,6 +3533,8 @@ export default function App() {
             setPendingContractCardId(null);
           } : undefined}
         />
+      ) : activeSubAgent === "order-review" ? (
+        <OrderReviewAgentPanel onBack={() => setActiveSubAgent(null)} />
       ) : activeSubAgent ? (
         <AgentIframePage agentKey={activeSubAgent} onBack={()=>setActiveSubAgent(null)} />
       ) : aiTab==="chat" ? (
