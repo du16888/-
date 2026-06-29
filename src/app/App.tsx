@@ -2128,7 +2128,6 @@ function OrderReviewAgentPanel({ onBack }: { onBack: () => void }) {
                       );
                     })}
                   </div>
-                </div>
               </div>
               {phase === "idle" && (
                 <div className="flex gap-1.5 mt-2">
@@ -2145,6 +2144,7 @@ function OrderReviewAgentPanel({ onBack }: { onBack: () => void }) {
                 </div>
               )}
             </div>
+          </div>
           );
         })()}
 
