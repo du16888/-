@@ -1386,7 +1386,7 @@ function AgentIframePage({ agentKey, onBack }: { agentKey:string; onBack:()=>voi
 
 // ─── Order Review Agent Panel ────────────────────────────────────────────────
 type ReviewPhase = "idle" | "auto_approving" | "auto_done" | "srm_detail" | "srm_done";
-type ReviewBubble = "welcome" | "user_auto" | "auto_progress" | "auto_done_msg" | "user_srm" | "srm_detail" | "srm_done_msg";
+type ReviewBubble = "welcome" | "all_items" | "user_auto" | "auto_progress" | "auto_done_msg" | "user_srm" | "srm_detail" | "srm_done_msg";
 
 const AUTO_ITEMS = [
   { id:"l1", tag:"请假申请", tagColor:"#13C2C2", icon:"📅", applicant:"张伟", dept:"工程部",     content:"年假申请 · 2天（2026-06-30 ~ 2026-07-01）", rule:"假期余额充足，符合请假规定，上级已知会" },
@@ -1928,7 +1928,16 @@ function OrderReviewAgentPanel({ onBack }: { onBack: () => void }) {
   const [phase, setPhase] = useState<ReviewPhase>("idle");
   const [bubbles, setBubbles] = useState<ReviewBubble[]>([]);
   const [isTyping, setIsTyping] = useState(false);
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set());
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  function toggleItem(id: string) {
+    setExpandedItems(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
 
   useEffect(() => {
     const t = setTimeout(() => setBubbles(["welcome"]), 400);
@@ -1938,6 +1947,10 @@ function OrderReviewAgentPanel({ onBack }: { onBack: () => void }) {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [bubbles, isTyping]);
+
+  function handleViewAll() {
+    if (!bubbles.includes("all_items")) setBubbles(v => [...v, "all_items"]);
+  }
 
   function handleAutoApprove() {
     if (phase !== "idle") return;
@@ -2011,24 +2024,103 @@ function OrderReviewAgentPanel({ onBack }: { onBack: () => void }) {
                 </div>
                 <p style={{ color:DD_GRAY }}>请选择操作：</p>
               </div>
-              {/* Action buttons */}
+              {/* Action buttons — always visible while idle */}
               {phase === "idle" && (
-                <div className="flex gap-2">
-                  <button onClick={handleAutoApprove}
-                    className="flex-1 py-2 rounded-xl text-xs font-semibold text-white flex items-center justify-center gap-1.5"
-                    style={{ backgroundColor:agentColor }}>
-                    <CheckSquare size={12} />一键审批 8 项
+                <div className="space-y-1.5">
+                  <button onClick={handleViewAll}
+                    className="w-full py-1.5 rounded-xl text-xs font-medium border flex items-center justify-center gap-1.5"
+                    style={{ borderColor:"#D9D9D9", color:DD_GRAY, backgroundColor:"#fff" }}>
+                    <LayoutGrid size={11} />查看所有审批内容
                   </button>
-                  <button onClick={handleSrmView}
-                    className="flex-1 py-2 rounded-xl text-xs font-medium border flex items-center justify-center gap-1.5"
-                    style={{ borderColor:"#E8E9EB", color:"#1F2329", backgroundColor:"#fff" }}>
-                    <AlertCircle size={12} style={{ color:DD_ORANGE }} />查看 SRM 合同
-                  </button>
+                  <div className="flex gap-2">
+                    <button onClick={handleAutoApprove}
+                      className="flex-1 py-2 rounded-xl text-xs font-semibold text-white flex items-center justify-center gap-1.5"
+                      style={{ backgroundColor:agentColor }}>
+                      <CheckSquare size={12} />一键审批 8 项
+                    </button>
+                    <button onClick={handleSrmView}
+                      className="flex-1 py-2 rounded-xl text-xs font-medium border flex items-center justify-center gap-1.5"
+                      style={{ borderColor:"#E8E9EB", color:"#1F2329", backgroundColor:"#fff" }}>
+                      <AlertCircle size={12} style={{ color:DD_ORANGE }} />查看 SRM 合同
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
           </div>
         )}
+
+        {/* All items list bubble */}
+        {bubbles.includes("all_items") && (() => {
+          const srmItem = { id:"srm", tag:"SRM合同", tagColor:DD_ORANGE, icon:"📄",
+            applicant:"王莉 · 客户服务处", content:"时代云图（佛山）二期 2026年车场改造合同 · ¥13,000",
+            rule:"发现 2 处条款冲突，需人工确认", isSrm:true };
+          const allItems = [...AUTO_ITEMS.map(i => ({ ...i, isSrm:false })), srmItem];
+          return (
+            <div className="flex gap-2 pr-8">
+              <div className="w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-white text-xs font-bold" style={{ backgroundColor:agentColor }}>审</div>
+              <div className="flex-1">
+                <div className="rounded-xl overflow-hidden text-xs" style={{ border:"1px solid #E8E9EB", backgroundColor:"#fff" }}>
+                  <div className="px-3 py-2 font-semibold border-b flex items-center gap-2" style={{ backgroundColor:"#F8F9FB", borderColor:"#F0F2F5", color:"#1F2329" }}>
+                    全部审批 <span style={{ color:DD_GRAY }}>· 共 9 项</span>
+                  </div>
+                  <div className="divide-y" style={{ borderColor:"#F5F5F5" }}>
+                    {allItems.map(item => {
+                      const expanded = expandedItems.has(item.id);
+                      const statusColor = item.isSrm ? DD_ORANGE : agentColor;
+                      const statusBg = item.isSrm ? "#FFF7E6" : "#F6FFED";
+                      const statusLabel = item.isSrm ? "待确认" : "建议通过";
+                      return (
+                        <div key={item.id}>
+                          <button
+                            onClick={() => toggleItem(item.id)}
+                            className="w-full flex items-center gap-2 px-3 py-2.5 text-left"
+                            style={{ backgroundColor: expanded ? "#FAFBFC" : "transparent" }}>
+                            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded shrink-0" style={{ backgroundColor: item.tagColor + "18", color: item.tagColor }}>
+                              {item.tag}
+                            </span>
+                            <span className="font-medium text-[10px] shrink-0" style={{ color:"#1F2329" }}>{item.applicant}</span>
+                            <span className="flex-1 text-[10px] truncate" style={{ color:DD_GRAY }}>{item.content}</span>
+                            <span className="text-[9px] font-medium px-1.5 py-0.5 rounded-full shrink-0" style={{ backgroundColor:statusBg, color:statusColor }}>{statusLabel}</span>
+                            <ChevronRight size={11} style={{ color:DD_GRAY, transform: expanded ? "rotate(90deg)" : "none", transition:"transform 0.2s", flexShrink:0 }} />
+                          </button>
+                          {expanded && (
+                            <div className="px-3 pb-3 pt-1 text-[10px] leading-relaxed space-y-1" style={{ backgroundColor:"#F8F9FB", borderTop:"1px solid #F0F2F5" }}>
+                              <div className="flex gap-1.5">
+                                <span className="shrink-0 font-medium" style={{ color:DD_GRAY }}>内容：</span>
+                                <span style={{ color:"#1F2329" }}>{item.content}</span>
+                              </div>
+                              {!item.isSrm && (
+                                <div className="flex gap-1.5">
+                                  <span className="shrink-0 font-medium" style={{ color:DD_GRAY }}>AI 判断：</span>
+                                  <span style={{ color:"#1F2329" }}>{(item as typeof AUTO_ITEMS[0]).rule}</span>
+                                </div>
+                              )}
+                              {item.isSrm && (
+                                <div>
+                                  <div className="flex gap-1.5 mb-1.5">
+                                    <span className="shrink-0 font-medium" style={{ color:DD_GRAY }}>风险：</span>
+                                    <span style={{ color:DD_ORANGE }}>发现 2 处条款冲突，建议人工审核后处理</span>
+                                  </div>
+                                  {SRM_ISSUES.map(issue => (
+                                    <div key={issue.no} className="flex gap-1.5 ml-8">
+                                      <span className="shrink-0" style={{ color:DD_ORANGE }}>#{issue.no}</span>
+                                      <span style={{ color:"#1F2329" }}>{issue.clauses}：{issue.desc.slice(0,40)}…</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
 
         {/* User: 一键审批 */}
         {bubbles.includes("user_auto") && (
