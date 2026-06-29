@@ -9,6 +9,7 @@ import {
 import logo from "@/imports/____LOGO.png";
 import aiAvatar from "@/imports/1___3x_21_.png";
 import taskAvatar from "@/imports/1___3x_25_.png";
+import reportImg from "@/imports/报表.png";
 
 const B1 = "#2E6BE6";
 const B2 = "#6B9CF2";
@@ -40,6 +41,9 @@ interface Message {
   id: string; role: "user" | "agent"; content: string; time: string;
   typing?: boolean; suggestions?: string[];
   actionable?: { label: string; prompt: string }[];
+  thinking?: boolean;
+  image?: string;
+  reportUrl?: string;
 }
 interface Schedule {
   id: string; title: string; date: string; time: string;
@@ -1258,16 +1262,30 @@ function ChatPanel({ messages, input, setInput, sendMessage, linkedTask, clearLi
             <div className={`max-w-[78%] flex flex-col gap-1 ${msg.role==="user"?"items-end":"items-start"}`}>
               <div className="rounded-2xl px-3 py-2.5 text-sm leading-relaxed"
                 style={{
-                  backgroundColor:msg.role==="user"?DD_BLUE:"#fff",
-                  color:msg.role==="user"?"#fff":"#1F2329",
+                  backgroundColor: msg.thinking ? "#F5F6F8" : msg.role==="user" ? DD_BLUE : "#fff",
+                  color: msg.thinking ? DD_GRAY : msg.role==="user" ? "#fff" : "#1F2329",
                   borderRadius:msg.role==="user"?"16px 4px 16px 16px":"4px 16px 16px 16px",
                   boxShadow:"0 1px 4px rgba(0,0,0,0.07)",
+                  fontStyle: msg.thinking ? "italic" : "normal",
+                  fontSize: msg.thinking ? "11px" : undefined,
                 }}>
                 {msg.typing
                   ? <div className="flex gap-1 items-center py-0.5">{[0,1,2].map(i=><div key={i} className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ backgroundColor:DD_GRAY, animationDelay:`${i*0.15}s` }} />)}</div>
-                  : <div className="whitespace-pre-wrap">{msg.content}</div>
+                  : <div className="whitespace-pre-wrap">{msg.thinking && <span className="mr-1">🔍</span>}{msg.content}</div>
                 }
               </div>
+              {msg.image && !msg.typing && (
+                <img src={msg.image} alt="报表" className="w-full rounded-xl mt-1" style={{ border:"1px solid #E8E9EB", display:"block" }} />
+              )}
+              {msg.reportUrl && !msg.typing && (
+                <a href={msg.reportUrl} target="_blank" rel="noreferrer"
+                  className="flex items-center gap-2 px-3 py-2 rounded-xl mt-1 text-xs"
+                  style={{ backgroundColor:"#EBF2FF", border:`1px solid ${DD_BLUE}30`, color:DD_BLUE, textDecoration:"none" }}>
+                  <FileBarChart size={13} />
+                  <span className="flex-1 min-w-0 truncate">{msg.reportUrl}</span>
+                  <span className="shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded-full" style={{ backgroundColor:DD_BLUE+"20" }}>按需检索</span>
+                </a>
+              )}
               {msg.time && <span className="text-[10px] px-1" style={{ color:DD_GRAY }}>{msg.time}</span>}
               {msg.actionable && !msg.typing && (
                 <div className="flex flex-col gap-1.5 mt-1 w-full">
@@ -3714,6 +3732,35 @@ export default function App() {
     setInput("");
     setTimeout(()=>{
       const isAllTasks = ["全部任务","全部事务","任务列表","所有任务","查看全部"].some(kw => content.includes(kw));
+      const isCollectionReport = ["回款","今日回款","每日回款","回款报表","回款内容","回款数据"].some(kw => content.includes(kw));
+      if (isCollectionReport) {
+        // Step 1: show thinking text
+        setMessages(prev=>prev.map(m=>m.typing?{
+          ...m, typing:false, thinking:true,
+          content:"正在检索「每日回款报表」...\n• 匹配关键词：回款 / 今日 / 收款\n• 检索系统：FineReport 财务报表平台\n• 已定位目标报表 activeTab=61018623-452b-4142-8707-91d2e4e366c1\n• 正在拉取当日最新数据...",
+          time:"",
+        }:m));
+        // Step 2: stream final answer + image + URL
+        setTimeout(()=>{
+          const replyText = "好的，以下是**每日回款报表**，数据来源于 FineReport 财务报表系统，按需实时查询（非固定回复）：";
+          const msgId = "r"+Date.now();
+          setMessages(prev=>[...prev, { id:msgId, role:"agent" as const, content:"", time:"", typing:false }]);
+          let idx = 0;
+          const timer = setInterval(()=>{
+            idx = Math.min(idx+4, replyText.length);
+            setMessages(prev=>prev.map(m=>m.id===msgId?{...m, content:replyText.slice(0,idx)}:m));
+            if (idx>=replyText.length) {
+              clearInterval(timer);
+              setMessages(prev=>prev.map(m=>m.id===msgId?{
+                ...m, time:now, image:reportImg,
+                reportUrl:"http://10.1.232.246:8089/webroot/decision#?activeTab=61018623-452b-4142-8707-91d2e4e366c1",
+                suggestions:["导出今日回款明细","查看欠缴大户列表","对比昨日回款"],
+              }:m));
+            }
+          }, 28);
+        }, 2000);
+        return;
+      }
       const isReorder = ["调整编排","重新编排","任务调整","调整任务","重排"].some(kw => content.includes(kw));
       const isProjectEntry = ["进场","进驻","接管","进场SOP","进场流程","进场需要","进场任务"].some(kw => content.includes(kw));
       const isContractQuery = !isProjectEntry && ["合同","签约","合同录入","合同查询","合同状态","合同审批"].some(kw => content.includes(kw));
