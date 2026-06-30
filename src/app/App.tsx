@@ -1393,6 +1393,7 @@ function ChatPanel({ messages, input, setInput, sendMessage, linkedTask, clearLi
               : <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0" style={{ backgroundColor:DD_BLUE }}>我</div>
             }
             <div className={`max-w-[78%] flex flex-col gap-1 ${msg.role==="user"?"items-end":"items-start"}`}>
+              {(msg.typing || msg.content || msg.thinking) && (
               <div className="rounded-2xl px-3 py-2.5 text-sm leading-relaxed"
                 style={{
                   backgroundColor: msg.thinking ? "#F5F6F8" : msg.role==="user" ? DD_BLUE : "#fff",
@@ -1407,13 +1408,16 @@ function ChatPanel({ messages, input, setInput, sendMessage, linkedTask, clearLi
                   : <div className="whitespace-pre-wrap">{msg.thinking && <span className="mr-1">🔍</span>}{msg.content}</div>
                 }
               </div>
-              {msg.attachmentImg && msg.role === "user" && (
-                <div className="rounded-xl overflow-hidden mt-1" style={{ border:"1px solid #D9E8FF", maxWidth:180 }}>
-                  <div className="flex items-center gap-1.5 px-2.5 py-1.5" style={{ backgroundColor:"#EBF2FF" }}>
-                    <FileText size={11} style={{ color:DD_BLUE }} />
-                    <span className="text-[11px] font-medium truncate" style={{ color:DD_BLUE }}>{msg.attachmentName ?? "附件"}</span>
+              )}
+              {msg.attachmentName && msg.role === "user" && (
+                <div className="rounded-xl overflow-hidden mt-1 flex items-center gap-2.5 px-3 py-2.5"
+                  style={{ border:"1px solid #E8E9EB", backgroundColor:"#fff", maxWidth:220, boxShadow:"0 1px 4px rgba(0,0,0,0.06)" }}>
+                  <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0 text-white text-[10px] font-bold"
+                    style={{ backgroundColor:"#E54D42" }}>PDF</div>
+                  <div className="flex flex-col min-w-0">
+                    <span className="text-[11px] font-medium leading-snug truncate" style={{ color:"#1F2329", maxWidth:150 }}>{msg.attachmentName}</span>
+                    <span className="text-[10px] mt-0.5" style={{ color:DD_GRAY }}>148.1 KB</span>
                   </div>
-                  <img src={msg.attachmentImg} alt="附件预览" className="w-full block" style={{ maxHeight:130, objectFit:"cover" }} />
                 </div>
               )}
               {msg.image && !msg.typing && (
@@ -3972,7 +3976,7 @@ export default function App() {
     const now = new Date().toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit"});
     setMessages(prev => [...prev, {
       id:"u"+Date.now(), role:"user" as const, content:"", time:now,
-      attachmentImg: invoiceImg, attachmentName:"发票文件.png",
+      attachmentImg: invoiceImg, attachmentName:"广州市时代邻里企业管理有限公司认证发票.pdf",
     }]);
     setTimeout(() => {
       setMessages(prev => [...prev, {
@@ -3981,7 +3985,7 @@ export default function App() {
       }]);
     }, 300);
     setTimeout(() => {
-      const replyText = "读取完成！识别为**增值税普通发票（已认证）**，发票信息如下：\n\n🏢 **购买方：** 广州市时代邻里企业管理有限公司\n🏭 **销售方：** 广州云图物资贸易有限公司\n📄 **发票号码：** 00123456　　**开票日期：** 2026-06-30\n📦 **品类：** 物业管理服务费\n💰 **不含税金额：** ¥2,830.19　　**税率：** 6%　　**税额：** ¥169.81\n✅ **价税合计：¥3,000.00**\n\n---\n\n检测到可发起**请款申请**，是否继续操作？\n• 请款公司：广州市时代邻里企业管理有限公司\n• 请款金额：**¥3,000.00**\n• 对应供应商：广州云图物资贸易有限公司";
+      const replyText = "读取完成！识别为**增值税普通发票（已认证）**，发票信息如下：\n\n🏢 **购买方：** 广州市时代邻里企业管理有限公司\n🏭 **销售方：** 钉钉（中国）信息技术有限公司\n📄 **发票号码：** 00123456　　**开票日期：** 2026-06-30\n📦 **品类：** 物业管理服务费\n💰 **不含税金额：** ¥2,830.19　　**税率：** 6%　　**税额：** ¥169.81\n✅ **价税合计：¥3,000.00**\n\n---\n\n检测到可发起**请款申请**，是否继续操作？\n• 请款公司：广州市时代邻里企业管理有限公司\n• 请款金额：**¥3,000.00**\n• 对应供应商：钉钉（中国）信息技术有限公司";
       const msgId = "r"+Date.now();
       setMessages(prev => [...prev, { id:msgId, role:"agent" as const, content:"", time:"", typing:false }]);
       let idx = 0;
