@@ -72,7 +72,7 @@ const tasks: Task[] = [
   { id:"t3", project:PROJECT, title:"停车场经营方案制定", type:"项目进场", status:"new", assignee:"项目经理", deadline:"进场后7天内", dept:"项目管理部", tags:["空间运营","公共资源"], desc:"停车场经营方案制定，并完成定价方案审批（前提为车场已竣备交付）", priority:"medium", steps:["提交审批内容","AI协助检查","AI检查完成提交流程审批"] },
   { id:"t4", project:PROJECT, title:"网格化日常安全巡查", type:"巡检任务", status:"new", assignee:"网格-建筑维修组", deadline:"2026.06.25", desc:"网格化建筑维修组日常巡查任务，需对各网格内终端设备进行清点，记录损耗情况，处理巡查中发现的工单问题，确保24小时内响应。", priority:"medium", steps:["开始网格巡查","语音记录问题与终端清点","AI识别生成工单和清点报告","提交并继续下一网格"] },
   { id:"t6", project:PROJECT, title:"业主满意度回访客户跟进", type:"客户跟进", status:"processing", assignee:"客服部", deadline:"2026.06.28", desc:"针对上季度满意度调研中有投诉反馈的业主进行复访跟进，了解问题解决情况，记录业主意见并汇总分析结果，提交管理层用于服务改善参考。", priority:"medium", steps:["整理上季度满意度数据","制定回访话术","执行电话回访","汇总反馈报告"] },
-  { id:"t7", project:"时代邻里西南区域二公司", title:"置信花园城2026年车场改造合同审批", type:"合同审批", status:"urgent", assignee:"王莉", deadline:"2026.06.29", desc:"SRM合同审批：置信花园城2026年车场改造合同（HTBM-2026041400015），签约金额¥13,000，AI法务智能体已识别2处条款冲突风险，需人工确认后完成审批。", priority:"high" },
+  { id:"t7", project:"时代云图（佛山）二期", title:"时代云图（佛山）二期2026年车场改造合同审批", type:"合同审批", status:"urgent", assignee:"王莉", deadline:"2026.06.29", desc:"SRM合同审批：时代云图（佛山）二期2026年车场改造合同（HTBM-2026041400015），签约金额¥13,000，AI法务智能体已识别2处条款冲突风险，需人工确认后完成审批。", priority:"high" },
 ];
 
 const historyChats = [
@@ -4202,7 +4202,7 @@ export default function App() {
                         <span className="text-[10px] font-medium px-1.5 py-0.5 rounded" style={{ backgroundColor:DD_RED_LIGHT, color:DD_RED }}>审批</span>
                         <span className="text-[10px] font-medium" style={{ color:DD_RED }}>待您审批</span>
                       </div>
-                      <p className="text-sm font-semibold leading-snug mb-1" style={{ color:"#1F2329" }}>SRM合同审批 · 置信花园城车场改造合同</p>
+                      <p className="text-sm font-semibold leading-snug mb-1" style={{ color:"#1F2329" }}>SRM合同审批 · 时代云图（佛山）二期车场改造合同</p>
                       <p className="text-xs leading-relaxed" style={{ color:DD_GRAY }}>AI法务智能体识别到2处条款冲突风险，另含8项常规审批可一键处理</p>
                     </div>
                     <button onClick={e => { e.stopPropagation(); handleAIAssist(tasks.find(t=>t.id==="t7")!); }}
