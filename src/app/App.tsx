@@ -4158,9 +4158,11 @@ export default function App() {
                       <div className="flex items-center gap-1.5 mb-1.5">
                         <span className="text-[10px] font-medium px-1.5 py-0.5 rounded" style={{ backgroundColor:"#E6F4FF", color:"#1677FF" }}>企微消息</span>
                         <span className="text-[10px] font-medium" style={{ color:DD_RED }}>待查看</span>
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white ml-auto" style={{ backgroundColor:DD_RED }}>11</span>
                       </div>
-                      <p className="text-sm font-semibold leading-snug mb-1" style={{ color:"#1F2329" }}>企业微信未读消息</p>
+                      <p className="text-sm font-semibold leading-snug mb-1 flex items-center gap-1.5" style={{ color:"#1F2329" }}>
+                        <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-full text-white shrink-0" style={{ backgroundColor:DD_RED }}>11</span>
+                        企业微信未读消息
+                      </p>
                       <p className="text-xs leading-relaxed" style={{ color:DD_GRAY }}>业主发起 · 4位业主/群组有未读消息待处理</p>
                     </div>
                     <button onClick={e => { e.stopPropagation(); setShowWeComMessages(true); }}
