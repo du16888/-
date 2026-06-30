@@ -3836,6 +3836,8 @@ export default function App() {
   const [showBpmApproval, setShowBpmApproval] = useState(false);
   const [showWeComMessages, setShowWeComMessages] = useState(false);
   const [urgentPopupVisible, setUrgentPopupVisible] = useState(false);
+  const [notifPanelOpen, setNotifPanelOpen] = useState(false);
+  const [srmEscalated, setSrmEscalated] = useState(false);
   const [showProjectEntryCard, setShowProjectEntryCard] = useState(false);
   const [showEntrySubTasks, setShowEntrySubTasks] = useState(false);
   const [completedCards, setCompletedCards] = useState<Set<string>>(new Set());
@@ -3857,8 +3859,8 @@ export default function App() {
 
   const completeCard = (id: string) => { setCompletedCards(prev => new Set([...prev, id])); setDetailTask(null); };
 
-  const urgentVisible = [...(showProjectEntryCard ? ["mc-project-entry"] : []), "mc-bpm-decoration", "mc-t1", "mc-srm-approval"].filter(id => !completedCards.has(id));
-  const todayVisible  = ["mc-inspection"].filter(id => !completedCards.has(id));
+  const urgentVisible = [...(showProjectEntryCard ? ["mc-project-entry"] : []), "mc-bpm-decoration", "mc-t1", ...(srmEscalated ? ["mc-srm-approval"] : [])].filter(id => !completedCards.has(id));
+  const todayVisible  = ["mc-inspection", ...(srmEscalated ? [] : ["mc-srm-approval"])].filter(id => !completedCards.has(id));
   const followVisible = ["mc-announcement", "mc-t6", "mc-q2-approval"].filter(id => !completedCards.has(id));
   const totalVisible  = urgentVisible.length + todayVisible.length + followVisible.length;
 
@@ -4242,16 +4244,19 @@ export default function App() {
                   </div>
                 </div>
                 )}
-                {/* SRM 合同审批 */}
-                {!completedCards.has("mc-srm-approval") && (
+                {/* SRM 合同审批 · 已从今日完成升级到立即处理 */}
+                {!completedCards.has("mc-srm-approval") && srmEscalated && (
                 <div onClick={() => handleAIAssist(tasks.find(t=>t.id==="t7")!)}
+                  data-card-id="mc-srm-approval"
                   className="bg-white rounded-xl p-3 mb-2 shadow-sm cursor-pointer"
-                  style={{ border:"1px solid #FFD6D6", borderLeft:`3px solid ${DD_RED}` }}>
+                  style={{ border:"1px solid #FFD6D6", borderLeft:`3px solid ${DD_RED}`,
+                    animation: "slideDownFade 0.45s cubic-bezier(0.34,1.56,0.64,1) both" }}>
                   <div className="flex items-start gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 mb-1.5">
                         <span className="text-[10px] font-medium px-1.5 py-0.5 rounded" style={{ backgroundColor:DD_RED_LIGHT, color:DD_RED }}>审批</span>
-                        <span className="text-[10px] font-medium" style={{ color:DD_RED }}>待您审批</span>
+                        <span className="text-[10px] font-medium" style={{ color:DD_RED }}>待您审批 · 今日截止</span>
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded" style={{ backgroundColor:"#FFF1F0", color:DD_RED }}>⚡ 加急</span>
                       </div>
                       <p className="text-sm font-semibold leading-snug mb-1" style={{ color:"#1F2329" }}>SRM合同审批 · 时代云图（佛山）二期车场改造合同</p>
                       <p className="text-xs leading-relaxed" style={{ color:DD_GRAY }}>AI法务智能体识别到2处条款冲突风险，另含8项常规审批可一键处理</p>
@@ -4262,6 +4267,7 @@ export default function App() {
                   </div>
                 </div>
                 )}
+                {/* SRM 合同审批（移至今日完成区，见下方） */}
               </div>
               <div>
                 <div className="flex items-center gap-1.5 mb-2">
@@ -4285,6 +4291,28 @@ export default function App() {
                     <button onClick={e => { e.stopPropagation(); setDetailTask(tasks.find(t=>t.id==="t4")||null); }}
                       className="shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-medium text-white self-center"
                       style={{ backgroundColor:DD_ORANGE }}>去处理</button>
+                  </div>
+                </div>
+                )}
+                {/* SRM 合同审批 · 加急待处理 */}
+                {!completedCards.has("mc-srm-approval") && !srmEscalated && (
+                <div onClick={() => handleAIAssist(tasks.find(t=>t.id==="t7")!)}
+                  data-card-id="mc-srm-approval"
+                  className="bg-white rounded-xl p-3 mb-2 shadow-sm cursor-pointer transition-all"
+                  style={{ border:"1px solid #FFE7BA", borderLeft:`3px solid ${DD_ORANGE}` }}>
+                  <div className="flex items-start gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded" style={{ backgroundColor:DD_ORANGE_LIGHT, color:DD_ORANGE }}>审批</span>
+                        <span className="text-[10px] font-medium" style={{ color:DD_ORANGE }}>今日完成</span>
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded animate-pulse" style={{ backgroundColor:"#FFF1F0", color:DD_RED }}>⚡ 加急</span>
+                      </div>
+                      <p className="text-sm font-semibold leading-snug mb-1" style={{ color:"#1F2329" }}>SRM合同审批 · 时代云图（佛山）二期车场改造合同</p>
+                      <p className="text-xs leading-relaxed" style={{ color:DD_GRAY }}>AI法务智能体识别到2处条款冲突风险，另含8项常规审批可一键处理</p>
+                    </div>
+                    <button onClick={e => { e.stopPropagation(); handleAIAssist(tasks.find(t=>t.id==="t7")!); }}
+                      className="shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-medium text-white self-center"
+                      style={{ backgroundColor:DD_ORANGE }}>去审批</button>
                   </div>
                 </div>
                 )}
@@ -4559,7 +4587,7 @@ export default function App() {
                     <Clock size={12} /><span>2026年06月17日 周二</span>
                   </div>
                   <div className="relative">
-                    <Bell size={16} style={{ color:DD_GRAY }} className="cursor-pointer" />
+                    <Bell size={16} style={{ color:DD_GRAY }} className="cursor-pointer" onClick={() => setNotifPanelOpen(true)} />
                     <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full text-white flex items-center justify-center text-[8px]" style={{ backgroundColor:DD_RED }}>3</span>
                   </div>
                   <div className="flex items-center gap-1.5 cursor-pointer">
@@ -4569,6 +4597,98 @@ export default function App() {
                   </div>
                 </div>
               </header>
+
+              {/* ─── 铃铛通知推拉面板 ─── */}
+              <div style={{
+                position: "fixed",
+                top: 0,
+                right: 0,
+                bottom: 0,
+                width: 360,
+                zIndex: 400,
+                transform: notifPanelOpen ? "translateX(0)" : "translateX(100%)",
+                transition: "transform 0.42s cubic-bezier(0.22,0.61,0.36,1)",
+                pointerEvents: notifPanelOpen ? "auto" : "none",
+                boxShadow: notifPanelOpen ? "-8px 0 32px rgba(22,49,79,.18)" : "none",
+              }}>
+                <div className="flex flex-col h-full" style={{ backgroundColor:"#fff" }}>
+                  {/* 头部 */}
+                  <div className="flex items-center justify-between px-4 h-14 shrink-0 border-b" style={{ borderColor:"#E8E9EB" }}>
+                    <div className="flex items-center gap-2">
+                      <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor:"#FFF1F0" }}>
+                        <Bell size={14} style={{ color:DD_RED }} />
+                      </div>
+                      <span className="text-sm font-bold" style={{ color:"#1F2329" }}>消息通知</span>
+                      <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white" style={{ backgroundColor:DD_RED }}>3</span>
+                    </div>
+                    <button onClick={() => setNotifPanelOpen(false)} className="text-xs px-2 py-1 rounded" style={{ color:DD_GRAY }}>✕ 关闭</button>
+                  </div>
+                  {/* 列表 */}
+                  <div className="flex-1 overflow-y-auto">
+                    {/* SRM 加急消息 */}
+                    <div onClick={() => { setNotifPanelOpen(false); setSrmEscalated(true); }}
+                      className="px-4 py-3 border-b cursor-pointer hover:bg-gray-50 transition-colors"
+                      style={{ borderColor:"#F0F2F5", backgroundColor:!srmEscalated ? "#FFFBEB" : "#fff" }}>
+                      <div className="flex items-start gap-3">
+                        <div className="relative shrink-0">
+                          <div className="w-9 h-9 rounded-lg flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor:DD_RED }}>SRM</div>
+                          <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full border-2 border-white" style={{ backgroundColor:DD_RED }} />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 mb-1">
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded text-white" style={{ backgroundColor:DD_RED }}>加急</span>
+                            <span className="text-[10px] font-bold" style={{ color:DD_RED }}>SRM合同审批需加急处理</span>
+                          </div>
+                          <p className="text-xs leading-relaxed mb-1" style={{ color:"#1F2329" }}>
+                            时代云图（佛山）二期车场改造合同（HTBM-2026041400015），签约金额 ¥13,000。AI法务智能体识别到 2 处条款冲突风险，截止今日内完成。
+                          </p>
+                          <p className="text-[10px]" style={{ color:DD_GRAY }}>刚刚 · SRM系统 · 自动推送</p>
+                          {!srmEscalated && (
+                            <button className="mt-2 w-full py-1.5 rounded-lg text-[11px] font-bold text-white"
+                              style={{ backgroundColor:DD_RED }}>
+                              ⚡ 立即升级到"立即处理"
+                            </button>
+                          )}
+                          {srmEscalated && (
+                            <div className="mt-2 w-full py-1.5 rounded-lg text-[11px] font-bold text-center"
+                              style={{ backgroundColor:"#F6FFED", color:DD_GREEN, border:`1px solid ${DD_GREEN}` }}>
+                              ✓ 已升级至"立即处理"
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    {/* 其他两条普通消息（占位） */}
+                    {[
+                      { tag:"审批", tagColor:DD_BLUE, tagBg:DD_BLUE_LIGHT, title:"供应商B续签合同待您审批", time:"09:15", from:"审批系统", content:"供应商B提交了年度服务续签合同，请在2个工作日内完成审批。" },
+                      { tag:"通知", tagColor:DD_ORANGE, tagBg:"#FFF7E6", title:"03栋大堂渗水问题已派单", time:"08:52", from:"工程维修组", content:"已按工单要求派遣维修人员，预计今日下午3点前处理完毕，请关注跟进。" },
+                    ].map((m,i)=>(
+                      <div key={i} className="px-4 py-3 border-b cursor-pointer hover:bg-gray-50" style={{ borderColor:"#F0F2F5" }}>
+                        <div className="flex items-start gap-3">
+                          <div className="w-9 h-9 rounded-lg flex items-center justify-center text-white text-xs font-bold shrink-0"
+                            style={{ backgroundColor: m.tagColor }}>{m.from.slice(0,1)}</div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5 mb-1">
+                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ backgroundColor:m.tagBg, color:m.tagColor }}>{m.tag}</span>
+                              <span className="text-[10px] font-medium" style={{ color:"#1F2329" }}>{m.title}</span>
+                            </div>
+                            <p className="text-xs leading-relaxed mb-1" style={{ color:DD_GRAY }}>{m.content}</p>
+                            <p className="text-[10px]" style={{ color:DD_GRAY }}>{m.time} · {m.from}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {/* 全部已读 */}
+                    <div className="px-4 py-3 text-center text-[11px]" style={{ color:DD_GRAY }}>— 没有更多了 —</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 推拉遮罩（仅点击关闭） */}
+              {notifPanelOpen && (
+                <div onClick={() => setNotifPanelOpen(false)}
+                  style={{ position:"fixed", inset:0, zIndex:399, backgroundColor:"rgba(22,49,79,.18)" }} />
+              )}
 
               {/* ─── 紧急任务浮动推送卡 ─── */}
               <div style={{
