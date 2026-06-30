@@ -10,6 +10,7 @@ import logo from "@/imports/____LOGO.png";
 import aiAvatar from "@/imports/1___3x_21_.png";
 import taskAvatar from "@/imports/1___3x_25_.png";
 import reportImg from "@/imports/报表.png";
+import invoiceImg from "@/imports/发票文件.png";
 
 const B1 = "#2E6BE6";
 const B2 = "#6B9CF2";
@@ -43,6 +44,8 @@ interface Message {
   actionable?: { label: string; prompt: string }[];
   thinking?: boolean;
   image?: string;
+  attachmentImg?: string;
+  attachmentName?: string;
   reportUrl?: string;
 }
 interface Schedule {
@@ -1366,11 +1369,12 @@ function DocsPanel() {
   );
 }
 
-function ChatPanel({ messages, input, setInput, sendMessage, linkedTask, clearLinked, messagesEndRef, onSelectAgent }: {
+function ChatPanel({ messages, input, setInput, sendMessage, linkedTask, clearLinked, messagesEndRef, onSelectAgent, onAttach }: {
   messages: Message[]; input: string; setInput:(v:string)=>void;
   sendMessage:(t?:string)=>void; linkedTask:Task|null;
   clearLinked:()=>void; messagesEndRef: React.RefObject<HTMLDivElement>;
   onSelectAgent: (key:string) => void;
+  onAttach?: () => void;
 }) {
   return (
     <>
@@ -1403,6 +1407,15 @@ function ChatPanel({ messages, input, setInput, sendMessage, linkedTask, clearLi
                   : <div className="whitespace-pre-wrap">{msg.thinking && <span className="mr-1">🔍</span>}{msg.content}</div>
                 }
               </div>
+              {msg.attachmentImg && msg.role === "user" && (
+                <div className="rounded-xl overflow-hidden mt-1" style={{ border:"1px solid #D9E8FF", maxWidth:180 }}>
+                  <div className="flex items-center gap-1.5 px-2.5 py-1.5" style={{ backgroundColor:"#EBF2FF" }}>
+                    <FileText size={11} style={{ color:DD_BLUE }} />
+                    <span className="text-[11px] font-medium truncate" style={{ color:DD_BLUE }}>{msg.attachmentName ?? "附件"}</span>
+                  </div>
+                  <img src={msg.attachmentImg} alt="附件预览" className="w-full block" style={{ maxHeight:130, objectFit:"cover" }} />
+                </div>
+              )}
               {msg.image && !msg.typing && (
                 <img src={msg.image} alt="报表" className="w-full rounded-xl mt-1" style={{ border:"1px solid #E8E9EB", display:"block" }} />
               )}
@@ -1456,7 +1469,7 @@ function ChatPanel({ messages, input, setInput, sendMessage, linkedTask, clearLi
       <AgentToolbar onSelectAgent={onSelectAgent} />
       <div className="p-3 border-t shrink-0" style={{ backgroundColor:"#fff", borderColor:"#E8E9EB" }}>
         <div className="flex items-end gap-2 rounded-xl p-2" style={{ border:"1px solid #E8E9EB", backgroundColor:"#F5F6F8" }}>
-          <button className="p-1.5" style={{ color:DD_GRAY }}><Paperclip size={15} /></button>
+          <button className="p-1.5" style={{ color:DD_GRAY }} onClick={onAttach}><Paperclip size={15} /></button>
           <textarea rows={2} className="flex-1 bg-transparent text-sm outline-none resize-none"
             placeholder="向 AI 助理提问..." value={input} onChange={e=>setInput(e.target.value)}
             onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();sendMessage();}}}
@@ -3955,6 +3968,40 @@ export default function App() {
     }, 1300);
   };
 
+  const sendInvoice = () => {
+    const now = new Date().toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit"});
+    setMessages(prev => [...prev, {
+      id:"u"+Date.now(), role:"user" as const, content:"", time:now,
+      attachmentImg: invoiceImg, attachmentName:"发票文件.png",
+    }]);
+    setTimeout(() => {
+      setMessages(prev => [...prev, {
+        id:"think"+Date.now(), role:"agent" as const, content:"正在接收文件...\n• 文件类型识别：图片（PNG）\n• 调用 OCR 识别引擎...\n• 提取字段：购买方 / 销售方 / 金额 / 税额 / 认证状态\n• 已匹配「增值税普通发票」模板，读取完成",
+        time:"", thinking:true,
+      }]);
+    }, 300);
+    setTimeout(() => {
+      const replyText = "读取完成！识别为**增值税普通发票（已认证）**，发票信息如下：\n\n🏢 **购买方：** 广州市时代邻里企业管理有限公司\n🏭 **销售方：** 广州云图物资贸易有限公司\n📄 **发票号码：** 00123456　　**开票日期：** 2026-06-30\n📦 **品类：** 物业管理服务费\n💰 **不含税金额：** ¥2,830.19　　**税率：** 6%　　**税额：** ¥169.81\n✅ **价税合计：¥3,000.00**\n\n---\n\n检测到可发起**请款申请**，是否继续操作？\n• 请款公司：广州市时代邻里企业管理有限公司\n• 请款金额：**¥3,000.00**\n• 对应供应商：广州云图物资贸易有限公司";
+      const msgId = "r"+Date.now();
+      setMessages(prev => [...prev, { id:msgId, role:"agent" as const, content:"", time:"", typing:false }]);
+      let idx = 0;
+      const timer = setInterval(() => {
+        idx = Math.min(idx+5, replyText.length);
+        setMessages(prev => prev.map(m => m.id===msgId ? {...m, content:replyText.slice(0,idx)} : m));
+        if (idx >= replyText.length) {
+          clearInterval(timer);
+          setMessages(prev => prev.map(m => m.id===msgId ? {
+            ...m, time:now,
+            actionable:[
+              { label:"💰 发起请款申请", prompt:"__AGENT_payment__" },
+            ],
+            suggestions:["暂不处理","修改请款金额","查看历史发票"],
+          } : m));
+        }
+      }, 22);
+    }, 2500);
+  };
+
   const handleOpenContractAgent = (task: Task) => {
     const cardId = taskCardMap[task.id] ?? null;
     setPendingContractCardId(cardId);
@@ -4402,7 +4449,7 @@ export default function App() {
         <ChatPanel messages={messages} input={input} setInput={setInput}
           sendMessage={sendMessage} linkedTask={linkedTask}
           clearLinked={()=>setLinkedTask(null)} messagesEndRef={messagesEndRef}
-          onSelectAgent={setActiveSubAgent} />
+          onSelectAgent={setActiveSubAgent} onAttach={sendInvoice} />
       ) : aiTab==="docs" ? <DocsPanel /> : <AnalyticsPanel />}
     </div>
   );
