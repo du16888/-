@@ -1,10 +1,11 @@
 ﻿import { useState, useRef, useEffect, useCallback, type ReactNode } from "react";
 import {
-  Bell, Send, Mic, ChevronDown, Paperclip, Search, FolderOpen,
+  Bell, Send, Mic, ChevronDown, ChevronUp, Paperclip, Search, FolderOpen,
   Clock, AlertCircle, Plus, Star, TrendingUp, X, RefreshCw,
   ThumbsUp, ThumbsDown, Copy, FileBarChart, BookOpen, ArrowLeft,
   CheckSquare, Zap, ChevronRight, Bot,
-  MessageCircle, Calendar, FileText, LayoutGrid, Users, Cpu, Minus, Square
+  MessageCircle, Calendar, FileText, LayoutGrid, Users, Cpu, Minus, Square,
+  CheckCircle2
 } from "lucide-react";
 import logo from "@/imports/____LOGO.png";
 import aiAvatar from "@/imports/1___3x_21_.png";
@@ -3840,6 +3841,7 @@ export default function App() {
   const [srmEscalated, setSrmEscalated] = useState(false);
   const [showProjectEntryCard, setShowProjectEntryCard] = useState(false);
   const [showEntrySubTasks, setShowEntrySubTasks] = useState(false);
+  const [showRepairSubTasks, setShowRepairSubTasks] = useState(false);
   const [completedCards, setCompletedCards] = useState<Set<string>>(new Set());
   const [messages, setMessages] = useState<Message[]>([{
     id:"m0", role:"agent", time:"09:00",
@@ -3859,7 +3861,7 @@ export default function App() {
 
   const completeCard = (id: string) => { setCompletedCards(prev => new Set([...prev, id])); setDetailTask(null); };
 
-  const urgentVisible = [...(showProjectEntryCard ? ["mc-project-entry"] : []), "mc-bpm-decoration", "mc-t1", ...(srmEscalated ? ["mc-srm-approval"] : [])].filter(id => !completedCards.has(id));
+  const urgentVisible = ["mc-repair-leak", ...(showProjectEntryCard ? ["mc-project-entry"] : []), "mc-bpm-decoration", "mc-t1", ...(srmEscalated ? ["mc-srm-approval"] : [])].filter(id => !completedCards.has(id));
   const todayVisible  = ["mc-inspection", ...(srmEscalated ? [] : ["mc-srm-approval"])].filter(id => !completedCards.has(id));
   const followVisible = ["mc-announcement", "mc-t6", "mc-q2-approval"].filter(id => !completedCards.has(id));
   const totalVisible  = urgentVisible.length + todayVisible.length + followVisible.length;
@@ -4136,7 +4138,7 @@ export default function App() {
                 <img src={taskAvatar} alt="任务助理" className="w-9 h-9 rounded-full object-cover shadow-sm" />
                 <div>
                   <h2 className="text-sm font-semibold leading-none" style={{ color:"#1F2329" }}>任务助理</h2>
-                  <p className="text-xs mt-0.5" style={{ color:DD_GRAY }}>我可以主动调度任务，分类排序，代理操作</p>
+                  <p className="text-xs mt-0.5" style={{ color:DD_GRAY }}>我可以主动调度任务，分配排序，进行动作链编排以及代理操作</p>
                 </div>
               </div>
               <button className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg text-white" style={{ backgroundColor:DD_BLUE }}>
@@ -4162,6 +4164,83 @@ export default function App() {
                   <span className="text-[11px] font-bold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor:DD_RED }}>立即处理</span>
                   <span className="text-[10px]" style={{ color:DD_GRAY }}>{urgentVisible.length}件 · 今日截止或超期</span>
                 </div>
+                {/* 维修工单 · AI 拆解 5 步动作链 */}
+                {!completedCards.has("mc-repair-leak") && (
+                <>
+                <div className="bg-white rounded-xl p-3 mb-2 shadow-sm"
+                  style={{ border:"1px solid #FFD6D6", borderLeft:`3px solid ${DD_RED}` }}>
+                  <div className="flex items-start gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded" style={{ backgroundColor:DD_RED_LIGHT, color:DD_RED }}>维修工单</span>
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded" style={{ backgroundColor:"#F0F5FF", color:DD_BLUE }}>⚙ AI 拆解 5 步</span>
+                        <span className="text-[10px] font-medium" style={{ color:DD_RED }}>今日截止</span>
+                      </div>
+                      <p className="text-sm font-semibold leading-snug mb-1" style={{ color:"#1F2329" }}>03栋大堂天花板渗水维修工单</p>
+                      <p className="text-xs leading-relaxed mb-2" style={{ color:DD_GRAY }}>AI提示：识别到现场需采购电线等设备，已自动拆解 5 步动作链，含请款审批流程</p>
+                      {/* 进度摘要：默认始终展示 */}
+                      <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg"
+                        style={{ backgroundColor:"#F6FFED", border:`1px solid ${DD_GREEN}30` }}>
+                        <CheckCircle2 size={12} style={{ color:DD_GREEN }} className="shrink-0" />
+                        <span className="text-[11px] flex-1" style={{ color:"#1F2329" }}>
+                          AI 已完成前 3 步 · 当前进度：<b style={{ color:DD_ORANGE }}>④ 待采购入库</b>
+                        </span>
+                        <button onClick={() => setShowRepairSubTasks(v => !v)}
+                          className="shrink-0 text-[11px] font-medium flex items-center gap-0.5"
+                          style={{ color:DD_BLUE }}>
+                          {showRepairSubTasks ? "收起" : "查看全部 5 步"}
+                          {showRepairSubTasks ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+                        </button>
+                      </div>
+                    </div>
+                    <button onClick={() => completeCard("mc-repair-leak")}
+                      className="shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-medium text-white self-center"
+                      style={{ backgroundColor:DD_RED }}>去处理</button>
+                  </div>
+                </div>
+                {showRepairSubTasks && (
+                  <div className="ml-3 mb-2 space-y-1.5" style={{ borderLeft:`2px solid ${DD_RED}30`, paddingLeft:10, animation:"slideDownFade 0.3s ease both" }}>
+                    {[
+                      { idx:"①", title:"查看库存 · 确认无电线类设备", status:"done", time:"06-29 14:20 完成" },
+                      { idx:"②", title:"申请设备请款 · 发起审批流程", status:"done", time:"06-29 14:35 完成" },
+                      { idx:"③", title:"申请完成 · 待财务审批通过", status:"done", time:"06-29 16:42 完成" },
+                      { idx:"④", title:"待采购入库", status:"doing", time:"采购中 · 预计 06-30 上午到货" },
+                      { idx:"⑤", title:"任务可继续执行 · 派单维修", status:"todo", time:"待 ④ 完成后自动触发" },
+                    ].map(sub=>{
+                      const isDone = sub.status === "done";
+                      const isDoing = sub.status === "doing";
+                      const dotColor = isDone ? DD_GREEN : isDoing ? DD_ORANGE : DD_GRAY;
+                      return (
+                        <div key={sub.idx} className="flex items-start gap-2 px-3 py-2 rounded-lg bg-white"
+                          style={{ border:`1px solid ${isDoing ? "#FFE7BA" : "#E8E9EB"}` }}>
+                          <span className="text-[11px] font-bold shrink-0 mt-0.5" style={{ color:dotColor, width:14 }}>{sub.idx}</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              {isDone && <CheckCircle2 size={11} style={{ color:DD_GREEN }} className="shrink-0" />}
+                              <span className="text-xs" style={{ color: isDone ? DD_GRAY : "#1F2329", textDecoration: isDone ? "line-through" : "none" }}>
+                                {sub.title}
+                              </span>
+                              {isDoing && (
+                                <span className="text-[10px] font-medium px-1.5 py-0.5 rounded animate-pulse shrink-0"
+                                  style={{ backgroundColor:DD_ORANGE_LIGHT, color:DD_ORANGE }}>进行中</span>
+                              )}
+                              {sub.status === "todo" && (
+                                <span className="text-[10px] font-medium px-1.5 py-0.5 rounded shrink-0"
+                                  style={{ backgroundColor:DD_GRAY_LIGHT, color:DD_GRAY }}>待办</span>
+                              )}
+                            </div>
+                            <p className="text-[10px] mt-0.5" style={{ color:DD_GRAY }}>{sub.time}</p>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    <p className="text-[10px] px-2 pt-1" style={{ color:DD_GRAY }}>
+                      💡 提示：常规维修单不会拆解，仅当 AI 识别需采购设备/走请款时自动展开动作链
+                    </p>
+                  </div>
+                )}
+                </>
+                )}
                 {/* 项目进场任务 - 动态出现 */}
                 {showProjectEntryCard && !completedCards.has("mc-project-entry") && (
                 <>
