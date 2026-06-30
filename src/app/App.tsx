@@ -562,28 +562,29 @@ function WeComMessagesModal({ onClose }: { onClose: () => void }) {
   const contact = WECOM_CONTACTS.find(c => c.id === selected);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ backgroundColor:"rgba(0,0,0,0.45)" }}
+    <div className="fixed inset-0 z-50 flex items-center justify-center px-4" style={{ backgroundColor:"rgba(0,0,0,0.5)" }}
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="w-full max-w-md rounded-t-2xl flex flex-col" style={{ backgroundColor:"#fff", maxHeight:"88vh" }}>
+      <div className="w-full max-w-sm rounded-2xl flex flex-col shadow-2xl" style={{ backgroundColor:"#fff", height:"72vh", maxHeight:560 }}>
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b shrink-0" style={{ borderColor:"#E8E9EB" }}>
-          <div className="flex items-center gap-2">
-            {selected && (
-              <button onClick={() => setSelected(null)} className="w-7 h-7 flex items-center justify-center rounded-full" style={{ backgroundColor:"#F5F6F8" }}>
-                <ArrowLeft size={14} style={{ color:DD_GRAY }} />
-              </button>
-            )}
-            <div>
-              <div className="text-sm font-semibold" style={{ color:"#1F2329" }}>
-                {contact ? contact.name : "企业微信未读消息"}
-              </div>
-              <div className="text-[10px]" style={{ color:DD_GRAY }}>
-                {contact ? contact.role : `共 ${WECOM_CONTACTS.reduce((s,c)=>s+c.unread,0)} 条未读 · 业主发起`}
-              </div>
+        <div className="flex items-center gap-2 px-4 py-3 border-b shrink-0" style={{ borderColor:"#E8E9EB" }}>
+          {selected && (
+            <button onClick={() => setSelected(null)}
+              className="w-7 h-7 flex items-center justify-center rounded-full shrink-0"
+              style={{ backgroundColor:"#F5F6F8" }}>
+              <ArrowLeft size={13} style={{ color:DD_GRAY }} />
+            </button>
+          )}
+          <div className="flex-1 min-w-0">
+            <div className="text-sm font-semibold truncate" style={{ color:"#1F2329" }}>
+              {contact ? contact.name : "企业微信未读消息"}
+            </div>
+            <div className="text-[10px]" style={{ color:DD_GRAY }}>
+              {contact ? contact.role : `共 ${WECOM_CONTACTS.reduce((s,c)=>s+c.unread,0)} 条未读 · 业主发起`}
             </div>
           </div>
-          <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center" style={{ backgroundColor:"#F5F6F8", color:DD_GRAY }}>
-            <X size={14} />
+          <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center shrink-0"
+            style={{ backgroundColor:"#F5F6F8", color:DD_GRAY }}>
+            <X size={13} />
           </button>
         </div>
 
@@ -591,10 +592,13 @@ function WeComMessagesModal({ onClose }: { onClose: () => void }) {
         <div className="flex-1 overflow-y-auto">
           {!selected ? (
             /* Contact list */
-            <div className="divide-y" style={{ borderColor:"#F5F6F8" }}>
+            <div className="divide-y" style={{ borderColor:"#F0F2F5" }}>
               {WECOM_CONTACTS.map(c => (
                 <button key={c.id} onClick={() => setSelected(c.id)}
-                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors">
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left"
+                  style={{ backgroundColor:"transparent" }}
+                  onMouseEnter={e => (e.currentTarget.style.backgroundColor="#F8F9FB")}
+                  onMouseLeave={e => (e.currentTarget.style.backgroundColor="transparent")}>
                   <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 text-white text-sm font-bold"
                     style={{ backgroundColor: c.color }}>{c.avatar}</div>
                   <div className="flex-1 min-w-0">
@@ -602,37 +606,43 @@ function WeComMessagesModal({ onClose }: { onClose: () => void }) {
                       <span className="text-sm font-medium" style={{ color:"#1F2329" }}>{c.name}</span>
                       <span className="text-[10px]" style={{ color:DD_GRAY }}>{c.messages[c.messages.length-1].time}</span>
                     </div>
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs truncate flex-1 mr-2" style={{ color:DD_GRAY }}>{c.messages[c.messages.length-1].text}</span>
-                      <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0" style={{ backgroundColor:DD_RED }}>{c.unread}</span>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-xs truncate flex-1" style={{ color:DD_GRAY }}>{c.messages[c.messages.length-1].text}</span>
+                      <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0"
+                        style={{ backgroundColor:DD_RED }}>{c.unread}</span>
                     </div>
                   </div>
+                  <ChevronRight size={13} style={{ color:DD_GRAY, flexShrink:0 }} />
                 </button>
               ))}
             </div>
           ) : (
             /* Message thread */
-            <div className="px-4 py-3 space-y-3">
-              {contact!.messages.map((msg, i) => (
-                <div key={i} className={`flex gap-2 ${msg.from === contact!.name || msg.from === contact!.avatar ? "" : "flex-row-reverse"}`}>
-                  {(msg.from === contact!.name || msg.from !== "物管助理") && (
+            <div className="px-4 py-4 space-y-4" style={{ backgroundColor:"#F5F8FF", minHeight:"100%" }}>
+              {contact!.messages.map((msg, i) => {
+                const isSelf = msg.from === "物管助理";
+                return (
+                  <div key={i} className={`flex gap-2 ${isSelf ? "flex-row-reverse" : ""}`}>
                     <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-white text-xs font-bold"
-                      style={{ backgroundColor: contact!.color }}>{msg.from.slice(0,1)}</div>
-                  )}
-                  {msg.from === "物管助理" && (
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-white text-xs font-bold"
-                      style={{ backgroundColor:"#52C41A" }}>管</div>
-                  )}
-                  <div className="max-w-[75%]">
-                    <div className="text-[10px] mb-1" style={{ color:DD_GRAY }}>{msg.from} · {msg.time}</div>
-                    <div className="rounded-2xl px-3 py-2 text-xs leading-relaxed"
-                      style={{ backgroundColor: msg.from === "物管助理" ? "#F6FFED" : "#F5F6F8", color:"#1F2329",
-                        border: msg.from === "物管助理" ? "1px solid #B7EB8F" : "none" }}>
-                      {msg.text}
+                      style={{ backgroundColor: isSelf ? "#52C41A" : contact!.color }}>
+                      {isSelf ? "管" : msg.from.slice(0,1)}
+                    </div>
+                    <div className={`max-w-[72%] ${isSelf ? "items-end" : "items-start"} flex flex-col gap-0.5`}>
+                      <span className="text-[10px]" style={{ color:DD_GRAY }}>{msg.from} · {msg.time}</span>
+                      <div className="rounded-2xl px-3 py-2 text-xs leading-relaxed"
+                        style={{
+                          backgroundColor: isSelf ? "#DCF4C8" : "#fff",
+                          color:"#1F2329",
+                          border: isSelf ? "none" : "1px solid #E8E9EB",
+                          borderTopLeftRadius: isSelf ? undefined : 4,
+                          borderTopRightRadius: isSelf ? 4 : undefined,
+                        }}>
+                        {msg.text}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -641,14 +651,14 @@ function WeComMessagesModal({ onClose }: { onClose: () => void }) {
         <div className="shrink-0 px-4 py-3 border-t" style={{ borderColor:"#E8E9EB", backgroundColor:"#FAFBFC" }}>
           {!selected ? (
             <p className="text-center text-[11px]" style={{ color:DD_GRAY }}>
-              点击联系人可查看消息详情，回复需前往企业微信操作
+              点击联系人查看消息详情 · 回复需前往企业微信操作
             </p>
           ) : (
-            <div className="flex items-center gap-3 rounded-xl px-3 py-2.5" style={{ backgroundColor:"#F5F6F8" }}>
+            <div className="flex items-center gap-3 rounded-xl px-3 py-2" style={{ backgroundColor:"#F5F6F8" }}>
               <span className="flex-1 text-xs" style={{ color:DD_GRAY }}>回复消息需登录企业微信</span>
-              <a href="weixin://" className="text-xs font-medium px-3 py-1.5 rounded-lg text-white" style={{ backgroundColor:"#07C160" }}>
-                打开企微
-              </a>
+              <button className="text-xs font-semibold px-3 py-1.5 rounded-lg text-white" style={{ backgroundColor:"#07C160" }}>
+                打开企微回复
+              </button>
             </div>
           )}
         </div>
