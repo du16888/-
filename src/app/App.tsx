@@ -530,6 +530,133 @@ function WorkOrderModal({ task, onClose, onInspectionDone, onComplete }: { task:
   );
 }
 
+// ─── WeCom Messages Modal ─────────────────────────────────────────────────────
+const WECOM_CONTACTS = [
+  { id:"wc1", name:"张伟", role:"803室业主", avatar:"张", unread:3, color:"#1677FF",
+    messages:[
+      { from:"张伟", time:"10:23", text:"你好，请问装修押金什么时候可以退还？我装修结束已经半个月了" },
+      { from:"张伟", time:"10:25", text:"另外墙体验收的人什么时候来？" },
+      { from:"张伟", time:"10:41", text:"有空回复一下谢谢" },
+    ]},
+  { id:"wc2", name:"刘芳", role:"1202室业主", avatar:"刘", unread:1, color:"#52C41A",
+    messages:[
+      { from:"刘芳", time:"09:45", text:"您好，我们家水管有点漏水，可以安排人来看一下吗？位置在厨房水槽下面" },
+    ]},
+  { id:"wc3", name:"B栋业主群", role:"群聊 · 32人", avatar:"群", unread:5, color:"#FA8C16",
+    messages:[
+      { from:"李先生", time:"昨天 18:20", text:"请问门禁卡补办要多少钱？" },
+      { from:"王女士", time:"昨天 18:35", text:"地下停车场灯坏了好几天了，有人管吗" },
+      { from:"陈先生", time:"昨天 19:01", text:"+1，停车场真的很暗" },
+      { from:"物管助理", time:"昨天 19:15", text:"您好，已记录，会安排师傅今天处理，门禁卡补办50元/张，请携带身份证到服务中心办理" },
+      { from:"赵女士", time:"今天 08:30", text:"早上好，请问今天有没有快递员上楼？" },
+    ]},
+  { id:"wc4", name:"陈晓东", role:"B区租户", avatar:"陈", unread:2, color:"#722ED1",
+    messages:[
+      { from:"陈晓东", time:"昨天 21:05", text:"你好，合同下个月到期了，想续签，请问流程是什么" },
+      { from:"陈晓东", time:"今天 09:12", text:"有没有人在？" },
+    ]},
+];
+
+function WeComMessagesModal({ onClose }: { onClose: () => void }) {
+  const [selected, setSelected] = useState<string|null>(null);
+  const contact = WECOM_CONTACTS.find(c => c.id === selected);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center" style={{ backgroundColor:"rgba(0,0,0,0.45)" }}
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="w-full max-w-md rounded-t-2xl flex flex-col" style={{ backgroundColor:"#fff", maxHeight:"88vh" }}>
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b shrink-0" style={{ borderColor:"#E8E9EB" }}>
+          <div className="flex items-center gap-2">
+            {selected && (
+              <button onClick={() => setSelected(null)} className="w-7 h-7 flex items-center justify-center rounded-full" style={{ backgroundColor:"#F5F6F8" }}>
+                <ArrowLeft size={14} style={{ color:DD_GRAY }} />
+              </button>
+            )}
+            <div>
+              <div className="text-sm font-semibold" style={{ color:"#1F2329" }}>
+                {contact ? contact.name : "企业微信未读消息"}
+              </div>
+              <div className="text-[10px]" style={{ color:DD_GRAY }}>
+                {contact ? contact.role : `共 ${WECOM_CONTACTS.reduce((s,c)=>s+c.unread,0)} 条未读 · 业主发起`}
+              </div>
+            </div>
+          </div>
+          <button onClick={onClose} className="w-7 h-7 rounded-full flex items-center justify-center" style={{ backgroundColor:"#F5F6F8", color:DD_GRAY }}>
+            <X size={14} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto">
+          {!selected ? (
+            /* Contact list */
+            <div className="divide-y" style={{ borderColor:"#F5F6F8" }}>
+              {WECOM_CONTACTS.map(c => (
+                <button key={c.id} onClick={() => setSelected(c.id)}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 text-white text-sm font-bold"
+                    style={{ backgroundColor: c.color }}>{c.avatar}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-0.5">
+                      <span className="text-sm font-medium" style={{ color:"#1F2329" }}>{c.name}</span>
+                      <span className="text-[10px]" style={{ color:DD_GRAY }}>{c.messages[c.messages.length-1].time}</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs truncate flex-1 mr-2" style={{ color:DD_GRAY }}>{c.messages[c.messages.length-1].text}</span>
+                      <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white shrink-0" style={{ backgroundColor:DD_RED }}>{c.unread}</span>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          ) : (
+            /* Message thread */
+            <div className="px-4 py-3 space-y-3">
+              {contact!.messages.map((msg, i) => (
+                <div key={i} className={`flex gap-2 ${msg.from === contact!.name || msg.from === contact!.avatar ? "" : "flex-row-reverse"}`}>
+                  {(msg.from === contact!.name || msg.from !== "物管助理") && (
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-white text-xs font-bold"
+                      style={{ backgroundColor: contact!.color }}>{msg.from.slice(0,1)}</div>
+                  )}
+                  {msg.from === "物管助理" && (
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-white text-xs font-bold"
+                      style={{ backgroundColor:"#52C41A" }}>管</div>
+                  )}
+                  <div className="max-w-[75%]">
+                    <div className="text-[10px] mb-1" style={{ color:DD_GRAY }}>{msg.from} · {msg.time}</div>
+                    <div className="rounded-2xl px-3 py-2 text-xs leading-relaxed"
+                      style={{ backgroundColor: msg.from === "物管助理" ? "#F6FFED" : "#F5F6F8", color:"#1F2329",
+                        border: msg.from === "物管助理" ? "1px solid #B7EB8F" : "none" }}>
+                      {msg.text}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="shrink-0 px-4 py-3 border-t" style={{ borderColor:"#E8E9EB", backgroundColor:"#FAFBFC" }}>
+          {!selected ? (
+            <p className="text-center text-[11px]" style={{ color:DD_GRAY }}>
+              点击联系人可查看消息详情，回复需前往企业微信操作
+            </p>
+          ) : (
+            <div className="flex items-center gap-3 rounded-xl px-3 py-2.5" style={{ backgroundColor:"#F5F6F8" }}>
+              <span className="flex-1 text-xs" style={{ color:DD_GRAY }}>回复消息需登录企业微信</span>
+              <a href="weixin://" className="text-xs font-medium px-3 py-1.5 rounded-lg text-white" style={{ backgroundColor:"#07C160" }}>
+                打开企微
+              </a>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── BPM Approval Modal ───────────────────────────────────────────────────────
 function BpmApprovalModal({ onClose, onComplete }: { onClose: () => void; onComplete: () => void }) {
   const [rejecting, setRejecting] = useState(false);
@@ -3680,6 +3807,7 @@ export default function App() {
   const [selectedSchedule, setSelectedSchedule] = useState<Schedule|null>(null);
   const [aiUnread, setAiUnread] = useState(false);
   const [showBpmApproval, setShowBpmApproval] = useState(false);
+  const [showWeComMessages, setShowWeComMessages] = useState(false);
   const [urgentPopupVisible, setUrgentPopupVisible] = useState(false);
   const [showProjectEntryCard, setShowProjectEntryCard] = useState(false);
   const [showEntrySubTasks, setShowEntrySubTasks] = useState(false);
@@ -3930,6 +4058,9 @@ export default function App() {
           onComplete={() => { completeCard("mc-bpm-decoration"); setShowBpmApproval(false); }}
         />
       )}
+      {showWeComMessages && (
+        <WeComMessagesModal onClose={() => setShowWeComMessages(false)} />
+      )}
       {detailTask ? (
         <TaskDetail task={detailTask} onBack={()=>setDetailTask(null)} onAI={handleAIAssist} onInspectionDone={handleInspectionDone}
           onComplete={taskCardMap[detailTask.id] ? () => completeCard(taskCardMap[detailTask!.id]) : undefined}
@@ -4007,23 +4138,24 @@ export default function App() {
                 )}
                 </>
                 )}
-                {/* BPM 装修审批 */}
-                {!completedCards.has("mc-bpm-decoration") && (
-                <div onClick={() => setShowBpmApproval(true)}
+                {/* 企微未读消息 */}
+                {!completedCards.has("mc-wecom-unread") && (
+                <div onClick={() => setShowWeComMessages(true)}
                   className="bg-white rounded-xl p-3 mb-2 shadow-sm cursor-pointer"
                   style={{ border:"1px solid #FFD6D6", borderLeft:`3px solid ${DD_RED}` }}>
                   <div className="flex items-start gap-3">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5 mb-1.5">
-                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded" style={{ backgroundColor:DD_RED_LIGHT, color:DD_RED }}>审批</span>
-                        <span className="text-[10px] font-medium" style={{ color:DD_RED }}>待您审批</span>
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded" style={{ backgroundColor:"#E6F4FF", color:"#1677FF" }}>企微消息</span>
+                        <span className="text-[10px] font-medium" style={{ color:DD_RED }}>待查看</span>
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white ml-auto" style={{ backgroundColor:DD_RED }}>11</span>
                       </div>
-                      <p className="text-sm font-semibold leading-snug mb-1" style={{ color:"#1F2329" }}>B区24栋802装修申请审批</p>
-                      <p className="text-xs leading-relaxed" style={{ color:DD_GRAY }}>管家张小华代业主李先生发起 · 普通装修申请</p>
+                      <p className="text-sm font-semibold leading-snug mb-1" style={{ color:"#1F2329" }}>企业微信未读消息</p>
+                      <p className="text-xs leading-relaxed" style={{ color:DD_GRAY }}>业主发起 · 4位业主/群组有未读消息待处理</p>
                     </div>
-                    <button onClick={e => { e.stopPropagation(); setShowBpmApproval(true); }}
+                    <button onClick={e => { e.stopPropagation(); setShowWeComMessages(true); }}
                       className="shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-medium text-white self-center"
-                      style={{ backgroundColor:DD_RED }}>去审批</button>
+                      style={{ backgroundColor:DD_RED }}>去处理</button>
                   </div>
                 </div>
                 )}
