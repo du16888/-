@@ -4852,7 +4852,18 @@ export default function App() {
 // ════════════════════════════════════════════════════════════════════════════
 const ORCH_CHAINS = [
   { id:"c1", title:"业主报修链路", trigger:"💬 钉钉群 · msg.contains(\"报修\") && channel=='业主群'", systems:["💬 钉钉","📋 工单","💰 SRM"], status:"enabled", runs:47, success:"98%", icon:"🔧", color:DD_BLUE,
-    nodes:[ {label:"识别报修意图",system:"钉钉",icon:"💬"}, {label:"建工单",system:"工单系统",icon:"📋"}, {label:"AI 派单",system:"工单系统",icon:"🤖"}, {label:"通知住户",system:"钉钉",icon:"📲"} ] },
+    nodes:[
+      { label:"识别报修意图", system:"钉钉", icon:"💬", branch:"main" },
+      { label:"建工单", system:"工单系统", icon:"📋", branch:"main" },
+      { label:"AI 派单", system:"工单系统", icon:"🤖", branch:"main" },
+      { label:"通知住户", system:"钉钉", icon:"📲", branch:"main" },
+      { label:"查库存 · 识别设备需求", system:"工单系统", icon:"📦", branch:"ai_added", condition:"建工单后 AI 自动触发" },
+      { label:"请款 agent · 发起请款", system:"SRM", icon:"💰", branch:"ai_added", condition:"缺料时自动激活" },
+    ],
+    hasAiBranch: true,
+    branchCondition: "维修过程中识别到需采购设备时",
+    branchHits: 4,
+  },
   { id:"c2", title:"合同到期预警链路", trigger:"📄 SRM · 合同到期前 30 天 && type=='服务合同'", systems:["📄 SRM","💬 钉钉","⚖ 法务"], status:"enabled", runs:5, success:"100%", icon:"📄", color:"#722ED1",
     nodes:[ {label:"识别到期",system:"SRM",icon:"📄"}, {label:"起草续签",system:"法务",icon:"⚖"}, {label:"发起审批",system:"钉钉",icon:"📋"}, {label:"归档",system:"SRM",icon:"🗂"} ] },
   { id:"c3", title:"台风应急链路", trigger:"🌪 气象 API · level >= '蓝色' && inSeason", systems:["🌪 气象","💬 钉钉","📋 工单"], status:"seasonal", runs:0, success:"—", icon:"🌪", color:DD_ORANGE,
@@ -5029,32 +5040,112 @@ function ChainDetail({ chain, onBack }:{ chain:typeof ORCH_CHAINS[0]; onBack:()=
       <div className="bg-white rounded-xl p-4" style={{ border:"1px solid #E8E9EB" }}>
         <div className="flex items-center gap-1.5 mb-3">
           <Activity size={13} style={{ color:DD_BLUE }}/>
-          <span className="text-sm font-semibold" style={{ color:"#1F2329" }}>动作链可视化 · 4 步</span>
+          <span className="text-sm font-semibold" style={{ color:"#1F2329" }}>
+            动作链可视化 · {chain.nodes.filter(n => (n as any).branch === "ai_added" || !(n as any).branch).length} 步
+          </span>
           <span className="text-[10px] ml-auto" style={{ color:DD_GRAY }}>从左到右：触发 → 执行 → 收尾</span>
         </div>
-        <div className="flex items-center gap-1 overflow-x-auto pb-2">
-          {chain.nodes.map((n, i) => (
+        {(chain as any).hasAiBranch ? <BranchChainView chain={chain} /> : <LinearChainView chain={chain} />}
+        <p className="text-[10px] mt-3 pt-3 border-t" style={{ color:DD_GRAY, borderColor:"#F0F2F5" }}>
+          💡 此链路员工感知为零：业主消息进来时，链路自动跑通，仅在任务卡上展示「已为您安排」结果
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function NodeCard({ n, color, isAiAdded }:{ n:any; color:string; isAiAdded?:boolean }) {
+  return (
+    <div className="relative rounded-xl px-3 py-2.5 text-center" style={{
+      backgroundColor: isAiAdded ? "#F9F0FF" : `${color}10`,
+      border: isAiAdded ? `1.5px dashed #722ED1` : `1.5px solid ${color}`,
+      minWidth: 108,
+    }}>
+      {isAiAdded && (
+        <div className="absolute -top-2 -right-2 w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px] font-bold shadow-sm"
+          style={{ backgroundColor:"#722ED1" }}>⚡</div>
+      )}
+      <div className="text-xl mb-1">{n.icon}</div>
+      <div className="text-[11px] font-bold" style={{ color: isAiAdded ? "#722ED1" : "#1F2329" }}>{n.label}</div>
+      <div className="text-[9px] mt-0.5" style={{ color: isAiAdded ? "#722ED1" : DD_GRAY }}>{n.system}</div>
+    </div>
+  );
+}
+
+function Arrow({ id, color = "#8F959E" }:{ id:string; color?:string }) {
+  return (
+    <svg width="40" height="24" className="shrink-0">
+      <defs>
+        <marker id={`arrow-${id}`} markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+          <path d="M0,0 L6,3 L0,6 z" fill={color} />
+        </marker>
+      </defs>
+      <path d="M 2 12 Q 20 -2 36 12" stroke={color} strokeWidth="1.5" fill="none" markerEnd={`url(#arrow-${id})`} strokeDasharray="3,2" />
+    </svg>
+  );
+}
+
+function LinearChainView({ chain }:{ chain:any }) {
+  return (
+    <div className="flex items-center gap-1 overflow-x-auto pb-2">
+      {chain.nodes.map((n:any, i:number) => (
+        <div key={i} className="flex items-center gap-1 shrink-0">
+          <NodeCard n={n} color={chain.color} />
+          {i < chain.nodes.length - 1 && <Arrow id={chain.id} />}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function BranchChainView({ chain }:{ chain:any }) {
+  const mainNodes = chain.nodes.filter((n:any) => n.branch === "main");
+  const aiNodes = chain.nodes.filter((n:any) => n.branch === "ai_added");
+  return (
+    <div className="space-y-3">
+      {/* 主线 */}
+      <div>
+        <div className="flex items-center gap-1.5 mb-2">
+          <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: chain.color }} />
+          <span className="text-[11px] font-bold" style={{ color:"#1F2329" }}>主线 · 普通报修</span>
+          <span className="text-[10px]" style={{ color:DD_GRAY }}>{mainNodes.length} 步</span>
+        </div>
+        <div className="flex items-center gap-1 overflow-x-auto pb-1">
+          {mainNodes.map((n:any, i:number) => (
             <div key={i} className="flex items-center gap-1 shrink-0">
-              <div className="rounded-xl px-3 py-2.5 text-center" style={{ backgroundColor:`${chain.color}10`, border:`1.5px solid ${chain.color}`, minWidth:108 }}>
-                <div className="text-xl mb-1">{n.icon}</div>
-                <div className="text-[11px] font-bold" style={{ color:"#1F2329" }}>{n.label}</div>
-                <div className="text-[9px] mt-0.5" style={{ color:DD_GRAY }}>{n.system}</div>
-              </div>
-              {i < chain.nodes.length - 1 && (
-                <svg width="40" height="24" className="shrink-0">
-                  <defs>
-                    <marker id={`arrow-${chain.id}`} markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-                      <path d="M0,0 L6,3 L0,6 z" fill={DD_GRAY} />
-                    </marker>
-                  </defs>
-                  <path d="M 2 12 Q 20 -2 36 12" stroke={DD_GRAY} strokeWidth="1.5" fill="none" markerEnd={`url(#arrow-${chain.id})`} strokeDasharray="3,2" />
-                </svg>
+              <NodeCard n={n} color={chain.color} />
+              {i < mainNodes.length - 1 && <Arrow id={`${chain.id}-main`} color={chain.color} />}
+            </div>
+          ))}
+        </div>
+      </div>
+      {/* AI 自动加入的分支 */}
+      <div className="rounded-lg p-2.5" style={{ backgroundColor:"#F9F0FF", border:"1px dashed #722ED1" }}>
+        <div className="flex items-center gap-1.5 mb-2">
+          <span className="text-[11px] font-bold flex items-center gap-1" style={{ color:"#722ED1" }}>
+            <Sparkles size={12}/>AI 自动加入的分支
+          </span>
+          <span className="text-[10px] px-1.5 py-0.5 rounded font-bold text-white" style={{ backgroundColor:"#722ED1" }}>⚡ 智能</span>
+          <span className="text-[10px] ml-auto" style={{ color:"#722ED1" }}>
+            触发条件：{chain.branchCondition}
+          </span>
+        </div>
+        <div className="flex items-center gap-1 overflow-x-auto pb-1">
+          {aiNodes.map((n:any, i:number) => (
+            <div key={i} className="flex items-center gap-1 shrink-0">
+              <NodeCard n={n} color={chain.color} isAiAdded />
+              {i < aiNodes.length - 1 && <Arrow id={`${chain.id}-ai`} color="#722ED1" />}
+              {i === aiNodes.length - 1 && (
+                <div className="flex flex-col items-center shrink-0 px-1.5">
+                  <span className="text-[9px] font-bold" style={{ color:"#722ED1" }}>↓</span>
+                  <span className="text-[8px] whitespace-nowrap" style={{ color:"#722ED1" }}>汇回主线</span>
+                </div>
               )}
             </div>
           ))}
         </div>
-        <p className="text-[10px] mt-3 pt-3 border-t" style={{ color:DD_GRAY, borderColor:"#F0F2F5" }}>
-          💡 此链路员工感知为零：业主消息进来时，链路自动跑通，仅在任务卡上展示「已为您安排」结果
+        <p className="text-[10px] mt-2" style={{ color:"#722ED1" }}>
+          💡 链路原本只有 {mainNodes.length} 步；本月有 <b>{chain.branchHits}</b> 次因识别到设备采购，AI 临时激活了请款链路
         </p>
       </div>
     </div>
