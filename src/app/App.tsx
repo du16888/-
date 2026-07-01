@@ -5,7 +5,7 @@ import {
   ThumbsUp, ThumbsDown, Copy, FileBarChart, BookOpen, ArrowLeft,
   CheckSquare, Zap, ChevronRight, Bot,
   MessageCircle, Calendar, FileText, LayoutGrid, Users, Cpu, Minus, Square,
-  CheckCircle2, Settings, Workflow, Sparkles, GitBranch, Plug, Activity, Eye, ThumbsUp, ThumbsDown
+  CheckCircle2, Settings, Workflow, Sparkles, GitBranch, Plug, Activity, Eye, ThumbsUp, ThumbsDown, ListChecks
 } from "lucide-react";
 import logo from "@/imports/____LOGO.png";
 import aiAvatar from "@/imports/1___3x_21_.png";
@@ -48,6 +48,9 @@ interface Message {
   attachmentImg?: string;
   attachmentName?: string;
   reportUrl?: string;
+  todoList?: { label: string; status: "pending" | "running" | "done" }[];
+  todoInteractive?: boolean; // 是否在 todo 末尾显示"采纳/暂不"按钮
+  todoAccepted?: boolean;    // 用户是否采纳
 }
 interface Schedule {
   id: string; title: string; date: string; time: string;
@@ -1408,6 +1411,52 @@ function ChatPanel({ messages, input, setInput, sendMessage, linkedTask, clearLi
                   ? <div className="flex gap-1 items-center py-0.5">{[0,1,2].map(i=><div key={i} className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ backgroundColor:DD_GRAY, animationDelay:`${i*0.15}s` }} />)}</div>
                   : <div className="whitespace-pre-wrap">{msg.thinking && <span className="mr-1">🔍</span>}{msg.content}</div>
                 }
+                {/* 实时 todo 清单（如有） */}
+                {msg.todoList && msg.todoList.length > 0 && !msg.typing && (
+                  <div className="mt-2 rounded-xl overflow-hidden" style={{ backgroundColor:"#F8F9FB", border:"1px solid #E8E9EB" }}>
+                    <div className="flex items-center gap-1.5 px-2.5 py-1.5" style={{ backgroundColor:"#F0F5FF", borderBottom:"1px solid #E8E9EB" }}>
+                      <ListChecks size={11} style={{ color:DD_BLUE }} />
+                      <span className="text-[10px] font-bold" style={{ color:DD_BLUE }}>AI 正在推进</span>
+                      <span className="text-[10px] ml-auto" style={{ color:DD_GRAY }}>
+                        {msg.todoList.filter(t => t.status === "done").length} / {msg.todoList.length}
+                      </span>
+                    </div>
+                    {msg.todoList.map((t, i) => (
+                      <div key={i} className="flex items-center gap-1.5 px-2.5 py-1.5" style={{ borderBottom: i < msg.todoList!.length - 1 ? "1px solid #F0F2F5" : "none" }}>
+                        {t.status === "done" ? (
+                          <CheckCircle2 size={12} style={{ color:DD_GREEN }} className="shrink-0" />
+                        ) : t.status === "running" ? (
+                          <div className="w-3 h-3 rounded-full border-2 shrink-0 animate-spin" style={{ borderColor:`${DD_BLUE}30`, borderTopColor:DD_BLUE }} />
+                        ) : (
+                          <div className="w-3 h-3 rounded-full border-2 shrink-0" style={{ borderColor:DD_GRAY_LIGHT }} />
+                        )}
+                        <span className="text-[11px] flex-1" style={{
+                          color: t.status === "done" ? DD_GRAY : t.status === "running" ? DD_BLUE : "#1F2329",
+                          textDecoration: t.status === "done" ? "line-through" : "none",
+                        }}>{t.label}</span>
+                        {t.status === "running" && <span className="text-[9px] font-medium px-1 py-0.5 rounded" style={{ backgroundColor:DD_BLUE_LIGHT, color:DD_BLUE }}>进行中</span>}
+                        {t.status === "done" && <span className="text-[9px] font-medium px-1 py-0.5 rounded" style={{ backgroundColor:"#F6FFED", color:DD_GREEN }}>已完成</span>}
+                      </div>
+                    ))}
+                    {/* 末尾的采纳按钮 */}
+                    {msg.todoInteractive && !msg.todoAccepted && (
+                      <div className="flex items-center gap-1.5 px-2.5 py-2" style={{ borderTop:"1px dashed #E8E9EB", backgroundColor:"#FFFBEB" }}>
+                        <span className="text-[11px] flex-1 font-medium" style={{ color:DD_ORANGE }}>是否采纳并开始进行？</span>
+                        <button onClick={() => acceptTodoList(msg.id, msg.todoList!)}
+                          className="text-[10px] font-bold px-2 py-1 rounded text-white"
+                          style={{ backgroundColor:DD_GREEN }}>✓ 采纳</button>
+                        <button onClick={() => declineTodoList(msg.id)}
+                          className="text-[10px] font-medium px-2 py-1 rounded"
+                          style={{ backgroundColor:"#fff", color:DD_GRAY, border:"1px solid #E8E9EB" }}>暂不</button>
+                      </div>
+                    )}
+                    {msg.todoAccepted && (
+                      <div className="px-2.5 py-1.5 text-[10px] flex items-center gap-1" style={{ backgroundColor:"#F6FFED", borderTop:"1px solid #E8E9EB", color:DD_GREEN }}>
+                        <CheckCircle2 size={10}/>已采纳 · AI 自动跑完整条链路
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
               )}
               {msg.attachmentName && msg.role === "user" && (
@@ -4021,25 +4070,88 @@ export default function App() {
     setActiveSubAgent("contract");
   };
 
-  const streamMessage = (fullText: string, actionable?: {label:string;prompt:string}[], onDone?: () => void) => {
+  const streamMessage = (
+    fullText: string,
+    actionable?: {label:string;prompt:string}[],
+    onDone?: () => void,
+    todoList?: { label: string; status: "pending" | "running" | "done" }[],
+    todoInteractive?: boolean
+  ) => {
     const msgId = "t"+Date.now();
     const now = new Date().toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit"});
-    setMessages(prev=>[...prev, { id:msgId, role:"agent", content:"", time:"", typing:false }]);
+    setMessages(prev=>[...prev, { id:msgId, role:"agent", content:"", time:"", typing:false, todoList, todoInteractive }]);
     let idx = 0;
     const CHUNK = 4;
     const INTERVAL = 28;
+    // 文字流式推进过程中，todo 列表的 running 跟随"已读字"位置切换：每 20% 文字推进一个 todo
+    const todoUpdatePoints = todoList ? todoList.map((_, i) => Math.floor(fullText.length * (i + 1) / (todoList.length + 1))) : [];
     const timer = setInterval(() => {
       idx = Math.min(idx + CHUNK, fullText.length);
       const partial = fullText.slice(0, idx);
-      setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: partial, time: idx >= fullText.length ? now : "" } : m));
+      let nextTodos = todoList;
+      if (todoList && todoUpdatePoints.length) {
+        nextTodos = todoList.map((t, i) => {
+          if (t.status === "done") return t;
+          if (idx >= todoUpdatePoints[i]) return { ...t, status: i === todoUpdatePoints.length - 1 && idx < fullText.length ? "running" : "done" };
+          if (i > 0 && todoUpdatePoints[i - 1] <= idx) return { ...t, status: "running" };
+          return t;
+        });
+      }
+      setMessages(prev => prev.map(m => m.id === msgId ? { ...m, content: partial, time: idx >= fullText.length ? now : "", todoList: nextTodos } : m));
       if (idx >= fullText.length) {
         clearInterval(timer);
         if (actionable) {
           setMessages(prev => prev.map(m => m.id === msgId ? { ...m, actionable } : m));
         }
+        // 全部完成：todo 全部标 done
+        if (todoList) {
+          setMessages(prev => prev.map(m => m.id === msgId ? { ...m, todoList: todoList.map(t => ({ ...t, status: "done" as const })) } : m));
+        }
         onDone?.();
       }
     }, INTERVAL);
+  };
+
+  // 用户采纳 todo 后，模拟 AI 逐项"再次"完成全过程（动画效果）
+  const acceptTodoList = (msgId: string, baseTodos: { label: string; status: "pending" | "running" | "done" }[]) => {
+    setMessages(prev => prev.map(m => m.id === msgId ? { ...m, todoAccepted: true, todoInteractive: false } : m));
+    let i = 0;
+    const tick = () => {
+      i = 0;
+      setMessages(prev => prev.map(m => {
+        if (m.id !== msgId || !m.todoList) return m;
+        const next = [...m.todoList];
+        next[i] = { ...next[i], status: "running" };
+        return { ...m, todoList: next };
+      }));
+      setTimeout(() => {
+        setMessages(prev => prev.map(m => {
+          if (m.id !== msgId || !m.todoList) return m;
+          const next = [...m.todoList];
+          next[i] = { ...next[i], status: "done" };
+          return { ...m, todoList: next };
+        }));
+        i++;
+        if (i < baseTodos.length) {
+          setTimeout(tick, 800);
+        } else {
+          // 全部完成，追发一条总结
+          setTimeout(() => {
+            setMessages(prev => [...prev, {
+              id: "t"+Date.now(),
+              role: "agent",
+              time: new Date().toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit"}),
+              content: "🎉 全部链路已跑通！\n\n✅ 三方比价流程：完成（候选供应商 3 家，已选最优）\n✅ 请款流程：完成（财务已审批 ¥1,250）\n✅ 采购到货：完成（设备已到货）\n✅ AI 派单给张师傅：完成（已接单，14:30 上门）\n✅ 钉钉通知 1203 业主：完成\n\n整个维修工单无需您介入。AI 已自动跑完整条链路。",
+            }]);
+          }, 600);
+        }
+      }, 900);
+    };
+    setTimeout(tick, 400);
+  };
+
+  const declineTodoList = (msgId: string) => {
+    setMessages(prev => prev.map(m => m.id === msgId ? { ...m, todoInteractive: false } : m));
   };
 
   const handleAIAssist = (task: Task) => {
@@ -4072,13 +4184,20 @@ export default function App() {
       ];
       setTimeout(() => streamMessage(fullText, actionable), 400);
     } else if (task.type === "维修工单") {
-      const fullText = `🔧 已接手「${task.title}」，AI 正在为您播报进度：\n\n✅ AI 已完成前 3 步：\n① 查看库存 · 确认无电线类设备（06-29 14:20）\n② 申请设备请款 · 发起审批流程（06-29 14:35）\n③ 申请完成 · 待财务审批通过（06-29 16:42）\n\n🟠 当前进度：④ 待采购入库\n   供应商已确认，预计 06-30 上午到货。\n\n🤖 接下来 AI 会自动：\n⑤ 设备到货后立即派单给张师傅\n⑥ 完工后钉钉通知 1203 业主\n\n整个链路无需您介入。设备到货时会同步通知您。`;
-      const actionable = [
-        { label: "📦 催办采购进度", prompt: "请帮我催一下本次采购的入库进度" },
-        { label: "🔍 查看完整动作链", prompt: "查看这个维修工单的完整动作链" },
-        { label: "👷 联系张师傅", prompt: "帮我联系张师傅确认维修时间" },
+      // 维修工单：user 消息只发任务名，不加"请帮我分析并处理任务："前缀
+      setMessages(prev => prev.map(m => m.id === userMsgId ? { ...m, content: `「${task.title}」` } : m));
+      const fullText = `🔧 我已识别到您点击的工单问题：\n\n${task.desc || "03栋大堂天花板发现渗水迹象，需现场排查并修复。"}\n\n━━━━ 当前进度 ━━━━\n✅ AI 已完成：\n① 查看库存 · 确认无电线类设备（06-29 14:20）\n② 申请设备请款 · 发起审批流程（06-29 14:35）\n③ 申请完成 · 待财务审批通过（06-29 16:42）\n\n🟠 当前在执行：④ 待采购入库\n   供应商已确认，预计 06-30 上午到货。\n\n━━━━ 接下来需要您介入的事项 ━━━━\n\n1️⃣ 您需要先发起【三方比价流程】\n   目的：让采购合规（避免单一供应商风险）\n   ⏱ 预计耗时：1 个工作日\n   ⚠️ 这是请款的前置条件，必须先完成\n\n2️⃣ 三方比价完成后，再发起【请款流程】\n   目的：财务审批通过后才能打款采购\n   ⏱ 预计耗时：1-2 个工作日\n   🔗 依赖：必须等 1️⃣ 走完才能启动\n\n3️⃣ 请款审批通过 → 财务打款 → 采购到货\n   ⏱ 预计耗时：3-5 个工作日\n\n4️⃣ 设备到货后 → AI 自动派单给张师傅\n   派单后 → 工程人员接单 → 上门维修 → 结单\n\n5️⃣ 完工后 → AI 自动钉钉通知 1203 业主\n\n━━━━ AI 会在 3️⃣ 之后接管 ━━━━\n您只需关注 1️⃣ 三方比价 + 2️⃣ 请款流程 这两步。\n其他步骤 AI 已能自动跑完。`;
+      const todoList = [
+        { label: "① 三方比价流程 · 让采购合规", status: "pending" as const },
+        { label: "② 请款流程 · 财务审批通过", status: "pending" as const },
+        { label: "③ 采购到货 · 3-5 个工作日", status: "pending" as const },
+        { label: "④ AI 派单给张师傅 · 自动接单", status: "pending" as const },
+        { label: "⑤ 钉钉通知 1203 业主 · 完工反馈", status: "pending" as const },
       ];
-      setTimeout(() => streamMessage(fullText, actionable), 400);
+      const actionable = [
+        { label: "🔍 查看完整动作链", prompt: "查看这个维修工单的完整动作链" },
+      ];
+      setTimeout(() => streamMessage(fullText, actionable, undefined, todoList, true), 400);
     } else {
       setMessages(prev=>[...prev, { id:"tp"+Date.now(), role:"agent", content:"", time:"", typing:true }]);
       setTimeout(()=>{
@@ -4262,7 +4381,7 @@ export default function App() {
                     </div>
                     <button onClick={e => { e.stopPropagation(); handleAIAssist(tasks.find(t=>t.id==="t2")!); }}
                       className="shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-medium text-white self-center"
-                      style={{ backgroundColor:DD_RED }}>查看进度</button>
+                      style={{ backgroundColor:DD_RED }}>去处理</button>
                   </div>
                 </div>
                 )}
@@ -4851,14 +4970,17 @@ export default function App() {
 // 编排中心 · 全屏弹层（仅管理员可见）
 // ════════════════════════════════════════════════════════════════════════════
 const ORCH_CHAINS = [
-  { id:"c1", title:"业主报修链路", trigger:"💬 钉钉群 · msg.contains(\"报修\") && channel=='业主群'", systems:["💬 钉钉","📋 工单","💰 SRM"], status:"enabled", runs:47, success:"98%", icon:"🔧", color:DD_BLUE,
+  { id:"c1", title:"业主报修链路", trigger:"💬 钉钉群 · msg.contains(\"报修\") && channel=='业主群'", systems:["💬 钉钉","📋 工单","💰 SRM","🛒 SRM比价"], status:"enabled", runs:47, success:"98%", icon:"🔧", color:DD_BLUE,
     nodes:[
       { label:"识别报修意图", system:"钉钉", icon:"💬", branch:"main" },
       { label:"建工单", system:"工单系统", icon:"📋", branch:"main" },
-      { label:"AI 派单", system:"工单系统", icon:"🤖", branch:"main" },
-      { label:"通知住户", system:"钉钉", icon:"📲", branch:"main" },
       { label:"查库存 · 识别设备需求", system:"工单系统", icon:"📦", branch:"ai_added", condition:"建工单后 AI 自动触发" },
-      { label:"请款 agent · 发起请款", system:"SRM", icon:"💰", branch:"ai_added", condition:"缺料时自动激活" },
+      { label:"三方比价", system:"SRM", icon:"🛒", branch:"ai_added", condition:"缺料时自动激活" },
+      { label:"请款流程", system:"SRM", icon:"💰", branch:"ai_added", condition:"比价完成后" },
+      { label:"采购到货", system:"SRM", icon:"📦", branch:"ai_added", condition:"请款审批通过" },
+      { label:"AI 派单", system:"工单系统", icon:"🤖", branch:"main" },
+      { label:"工单处理 · 接单/结单", system:"工单系统", icon:"🔧", branch:"main" },
+      { label:"通知住户", system:"钉钉", icon:"📲", branch:"main" },
     ],
     hasAiBranch: true,
     branchCondition: "维修过程中识别到需采购设备时",
@@ -5099,55 +5221,44 @@ function LinearChainView({ chain }:{ chain:any }) {
 }
 
 function BranchChainView({ chain }:{ chain:any }) {
-  const mainNodes = chain.nodes.filter((n:any) => n.branch === "main");
-  const aiNodes = chain.nodes.filter((n:any) => n.branch === "ai_added");
+  // 一条连续链路：主线节点用链路色，AI 临时加的节点用紫色 + ⚡
+  const allNodes = chain.nodes;
+  const mainCount = allNodes.filter((n:any) => n.branch === "main").length;
+  const aiCount = allNodes.filter((n:any) => n.branch === "ai_added").length;
   return (
-    <div className="space-y-3">
-      {/* 主线 */}
-      <div>
-        <div className="flex items-center gap-1.5 mb-2">
-          <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: chain.color }} />
-          <span className="text-[11px] font-bold" style={{ color:"#1F2329" }}>主线 · 普通报修</span>
-          <span className="text-[10px]" style={{ color:DD_GRAY }}>{mainNodes.length} 步</span>
-        </div>
-        <div className="flex items-center gap-1 overflow-x-auto pb-1">
-          {mainNodes.map((n:any, i:number) => (
+    <div>
+      {/* 单行连续链路 */}
+      <div className="flex items-center gap-1 overflow-x-auto pb-2">
+        {allNodes.map((n:any, i:number) => {
+          const isAi = n.branch === "ai_added";
+          return (
             <div key={i} className="flex items-center gap-1 shrink-0">
-              <NodeCard n={n} color={chain.color} />
-              {i < mainNodes.length - 1 && <Arrow id={`${chain.id}-main`} color={chain.color} />}
+              <NodeCard n={n} color={chain.color} isAiAdded={isAi} />
+              {i < allNodes.length - 1 && <Arrow id={`${chain.id}-${i}`} color={isAi ? "#722ED1" : chain.color} />}
             </div>
-          ))}
+          );
+        })}
+      </div>
+      {/* 图例 + 触发条件说明 */}
+      <div className="flex items-center gap-3 mt-2 px-2 py-1.5 rounded-lg flex-wrap" style={{ backgroundColor:"#F8F9FB", border:"1px solid #E8E9EB" }}>
+        <div className="flex items-center gap-1">
+          <div className="w-2 h-2 rounded" style={{ backgroundColor: chain.color, border:`1px solid ${chain.color}` }} />
+          <span className="text-[10px]" style={{ color:DD_GRAY }}>主线节点 · 原计划</span>
+          <span className="text-[10px] font-bold ml-1" style={{ color: chain.color }}>{mainCount}</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <div className="w-2 h-2 rounded" style={{ backgroundColor:"#F9F0FF", border:"1px dashed #722ED1" }} />
+          <span className="text-[10px]" style={{ color:"#722ED1" }}>AI 临时加入 · 智能</span>
+          <span className="text-[10px] font-bold ml-1" style={{ color:"#722ED1" }}>{aiCount}</span>
+        </div>
+        <div className="ml-auto text-[10px] flex items-center gap-1" style={{ color:"#722ED1" }}>
+          <Sparkles size={10} />
+          触发条件：{chain.branchCondition}
         </div>
       </div>
-      {/* AI 自动加入的分支 */}
-      <div className="rounded-lg p-2.5" style={{ backgroundColor:"#F9F0FF", border:"1px dashed #722ED1" }}>
-        <div className="flex items-center gap-1.5 mb-2">
-          <span className="text-[11px] font-bold flex items-center gap-1" style={{ color:"#722ED1" }}>
-            <Sparkles size={12}/>AI 自动加入的分支
-          </span>
-          <span className="text-[10px] px-1.5 py-0.5 rounded font-bold text-white" style={{ backgroundColor:"#722ED1" }}>⚡ 智能</span>
-          <span className="text-[10px] ml-auto" style={{ color:"#722ED1" }}>
-            触发条件：{chain.branchCondition}
-          </span>
-        </div>
-        <div className="flex items-center gap-1 overflow-x-auto pb-1">
-          {aiNodes.map((n:any, i:number) => (
-            <div key={i} className="flex items-center gap-1 shrink-0">
-              <NodeCard n={n} color={chain.color} isAiAdded />
-              {i < aiNodes.length - 1 && <Arrow id={`${chain.id}-ai`} color="#722ED1" />}
-              {i === aiNodes.length - 1 && (
-                <div className="flex flex-col items-center shrink-0 px-1.5">
-                  <span className="text-[9px] font-bold" style={{ color:"#722ED1" }}>↓</span>
-                  <span className="text-[8px] whitespace-nowrap" style={{ color:"#722ED1" }}>汇回主线</span>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-        <p className="text-[10px] mt-2" style={{ color:"#722ED1" }}>
-          💡 链路原本只有 {mainNodes.length} 步；本月有 <b>{chain.branchHits}</b> 次因识别到设备采购，AI 临时激活了请款链路
-        </p>
-      </div>
+      <p className="text-[10px] mt-2" style={{ color:"#722ED1" }}>
+        💡 链路原本只有 {mainCount} 步；本月有 <b>{chain.branchHits}</b> 次因识别到设备采购，AI 临时激活了 {aiCount} 个节点
+      </p>
     </div>
   );
 }
