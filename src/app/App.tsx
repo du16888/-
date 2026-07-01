@@ -1373,12 +1373,14 @@ function DocsPanel() {
   );
 }
 
-function ChatPanel({ messages, input, setInput, sendMessage, linkedTask, clearLinked, messagesEndRef, onSelectAgent, onAttach }: {
+function ChatPanel({ messages, input, setInput, sendMessage, linkedTask, clearLinked, messagesEndRef, onSelectAgent, onAttach, onAdoptTodo, onDeclineTodo }: {
   messages: Message[]; input: string; setInput:(v:string)=>void;
   sendMessage:(t?:string)=>void; linkedTask:Task|null;
   clearLinked:()=>void; messagesEndRef: React.RefObject<HTMLDivElement>;
   onSelectAgent: (key:string) => void;
   onAttach?: () => void;
+  onAdoptTodo: () => void;
+  onDeclineTodo: (msgId: string) => void;
 }) {
   return (
     <>
@@ -1442,24 +1444,10 @@ function ChatPanel({ messages, input, setInput, sendMessage, linkedTask, clearLi
                     {msg.todoInteractive && !msg.todoAccepted && (
                       <div className="flex items-center gap-1.5 px-2.5 py-2" style={{ borderTop:"1px dashed #E8E9EB", backgroundColor:"#FFFBEB" }}>
                         <span className="text-[11px] flex-1 font-medium" style={{ color:DD_ORANGE }}>是否按计划开展？</span>
-                        <button onClick={() => {
-                          console.log("[repair] Adopt clicked");
-                          try {
-                            const now = new Date().toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit"});
-                            setMessages(prev => [...prev, { id:"u"+Date.now(), role:"user", content:"按计划开展", time:now }]);
-                            setRepairFlowPending(false);
-                            startRepairFlow();
-                          } catch (e) {
-                            console.error("[repair] Adopt error:", e);
-                          }
-                        }}
+                        <button onClick={onAdoptTodo}
                           className="text-[10px] font-bold px-2 py-1 rounded text-white"
                           style={{ backgroundColor:DD_GREEN }}>✓ 按计划展开</button>
-                        <button onClick={() => {
-                          const now = new Date().toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit"});
-                          setMessages(prev => [...prev, { id:"u"+Date.now(), role:"user", content:"暂不", time:now }]);
-                          declineTodoList(msg.id);
-                        }}
+                        <button onClick={() => onDeclineTodo(msg.id)}
                           className="text-[10px] font-medium px-2 py-1 rounded"
                           style={{ backgroundColor:"#fff", color:DD_GRAY, border:"1px solid #E8E9EB" }}>暂不</button>
                       </div>
@@ -4740,7 +4728,18 @@ export default function App() {
         <ChatPanel messages={messages} input={input} setInput={setInput}
           sendMessage={sendMessage} linkedTask={linkedTask}
           clearLinked={()=>setLinkedTask(null)} messagesEndRef={messagesEndRef}
-          onSelectAgent={setActiveSubAgent} onAttach={sendInvoice} />
+          onSelectAgent={setActiveSubAgent} onAttach={sendInvoice}
+          onAdoptTodo={() => {
+            const now = new Date().toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit"});
+            setMessages(prev => [...prev, { id:"u"+Date.now(), role:"user", content:"按计划开展", time:now }]);
+            setRepairFlowPending(false);
+            startRepairFlow();
+          }}
+          onDeclineTodo={(msgId) => {
+            const now = new Date().toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit"});
+            setMessages(prev => [...prev, { id:"u"+Date.now(), role:"user", content:"暂不", time:now }]);
+            declineTodoList(msgId);
+          }} />
       ) : aiTab==="docs" ? <DocsPanel /> : <AnalyticsPanel />}
     </div>
   );
