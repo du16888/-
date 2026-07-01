@@ -5258,64 +5258,111 @@ function ChainDetail({ chain, onBack }:{ chain:typeof ORCH_CHAINS[0]; onBack:()=
   );
 }
 
+// Dify/Coze 风格节点卡片：顶部状态色头 + body 字段 + 底部状态条
 function NodeCard({ n, color, isAiAdded }:{ n:any; color:string; isAiAdded?:boolean }) {
   if (n.type === "decision") {
-    // 菱形判断节点：橙色虚线菱形 + ⚠️ 角标
     return (
-      <div className="relative flex flex-col items-center justify-center text-center" style={{ minWidth: 120, minHeight: 78 }}>
-        <div className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px] font-bold shadow-sm"
-          style={{ backgroundColor:DD_ORANGE }}>⚠</div>
-        <div className="w-[110px] h-[58px] flex items-center justify-center text-xs font-bold px-2"
+      <div className="relative flex flex-col items-center" style={{ width: 132 }}>
+        <div className="text-[9px] font-bold mb-1" style={{ color:DD_ORANGE }}>CONDITION</div>
+        <div className="w-[120px] h-[64px] flex items-center justify-center text-center text-[11px] font-bold px-2 leading-tight"
           style={{
             backgroundColor:"#FFF7E6",
             border:`1.5px dashed ${DD_ORANGE}`,
-            transform: "rotate(0deg)",
             clipPath: "polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)",
             color:DD_ORANGE,
           }}>
-          {n.icon} {n.label}
+          <span className="block -mt-1">{n.icon} {n.label}</span>
         </div>
-        {n.condition && <div className="text-[9px] mt-1.5 px-1" style={{ color:DD_GRAY }}>{n.condition}</div>}
+        {n.condition && <div className="text-[9px] mt-1.5 px-1 text-center" style={{ color:DD_GRAY, maxWidth:120 }}>{n.condition}</div>}
       </div>
     );
   }
+  const headerColor = isAiAdded ? "#722ED1" : color;
+  const bgLight = isAiAdded ? "#F9F0FF" : `${color}10`;
+  const inputs: string[] = n.inputs || [];
+  const outputs: string[] = n.outputs || [];
+  const status: "done"|"running"|"pending" = n.status || "pending";
+  const statusLabel = status === "done" ? "已完成" : status === "running" ? "执行中" : "待执行";
+  const statusColor = status === "done" ? DD_GREEN : status === "running" ? DD_BLUE : DD_GRAY;
+  const statusBg = status === "done" ? "#F6FFED" : status === "running" ? "#E6F4FF" : "#F5F5F5";
   return (
-    <div className="relative rounded-xl px-3 py-2.5 text-center" style={{
-      backgroundColor: isAiAdded ? "#F9F0FF" : `${color}10`,
-      border: isAiAdded ? `1.5px dashed #722ED1` : `1.5px solid ${color}`,
-      minWidth: 108,
+    <div className="relative rounded-lg overflow-hidden text-left" style={{
+      width: 168,
+      backgroundColor:"#fff",
+      border:`1px solid ${headerColor}50`,
+      boxShadow:"0 1px 3px rgba(0,0,0,0.06)",
     }}>
-      {isAiAdded && (
-        <div className="absolute -top-2 -right-2 w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px] font-bold shadow-sm"
-          style={{ backgroundColor:"#722ED1" }}>⚡</div>
-      )}
-      <div className="text-xl mb-1">{n.icon}</div>
-      <div className="text-[11px] font-bold" style={{ color: isAiAdded ? "#722ED1" : "#1F2329" }}>{n.label}</div>
-      <div className="text-[9px] mt-0.5" style={{ color: isAiAdded ? "#722ED1" : DD_GRAY }}>{n.system}</div>
+      {/* 顶部状态色头 */}
+      <div className="px-2.5 py-1.5 flex items-center gap-1.5" style={{ backgroundColor: headerColor }}>
+        <span className="text-sm shrink-0">{n.icon}</span>
+        <div className="flex-1 min-w-0">
+          <div className="text-[10px] font-bold text-white truncate">{n.label}</div>
+          <div className="text-[8px] text-white/80 truncate">{n.system || (isAiAdded ? "AI 智能" : "主线")}</div>
+        </div>
+        {isAiAdded && <Sparkles size={10} className="text-white shrink-0" />}
+      </div>
+      {/* body：输入字段 */}
+      <div className="px-2.5 py-1.5 space-y-0.5">
+        {inputs.length > 0 ? inputs.map((f, i) => (
+          <div key={i} className="flex items-center gap-1 text-[9px]" style={{ color:"#1F2329" }}>
+            <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: headerColor }} />
+            <span className="truncate">{f}</span>
+          </div>
+        )) : <div className="text-[9px]" style={{ color:DD_GRAY }}>无输入参数</div>}
+      </div>
+      {/* 底部状态条 */}
+      <div className="px-2.5 py-1 flex items-center justify-between text-[9px] font-medium" style={{ backgroundColor: statusBg, color: statusColor }}>
+        <span className="flex items-center gap-1">
+          {status === "done" ? <CheckCircle2 size={9} /> : status === "running" ? <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: statusColor }} /> : <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: statusColor }} />}
+          {statusLabel}
+        </span>
+        {outputs.length > 0 && <span className="truncate ml-1" style={{ color:DD_GRAY }}>→ {outputs[0]}</span>}
+      </div>
     </div>
   );
 }
 
-function Arrow({ id, color = "#8F959E" }:{ id:string; color?:string }) {
+// 节点间贝塞尔连线 + 箭头
+function Connector({ id, color = "#8F959E", label, vertical = false }:{ id:string; color?:string; label?:string; vertical?:boolean }) {
+  const markerId = `arr-${id}`;
+  if (vertical) {
+    // 垂直向下连线
+    return (
+      <div className="relative flex flex-col items-center" style={{ width: 36, height: 56 }}>
+        <svg width="36" height="56">
+          <defs>
+            <marker id={markerId} markerWidth="6" markerHeight="6" refX="3" refY="5" orient="auto">
+              <path d="M0,0 L6,5 L0,10 z" fill={color} />
+            </marker>
+          </defs>
+          <path d="M 18 2 Q 4 28 18 50" stroke={color} strokeWidth="1.5" fill="none" markerEnd={`url(#${markerId})`} strokeDasharray="4,3" />
+        </svg>
+        {label && <span className="absolute -left-1 top-1/2 -translate-y-1/2 text-[9px] font-bold px-1 rounded" style={{ backgroundColor:"#fff", color, border:`1px solid ${color}` }}>{label}</span>}
+      </div>
+    );
+  }
   return (
-    <svg width="40" height="24" className="shrink-0">
-      <defs>
-        <marker id={`arrow-${id}`} markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-          <path d="M0,0 L6,3 L0,6 z" fill={color} />
-        </marker>
-      </defs>
-      <path d="M 2 12 Q 20 -2 36 12" stroke={color} strokeWidth="1.5" fill="none" markerEnd={`url(#arrow-${id})`} strokeDasharray="3,2" />
-    </svg>
+    <div className="relative flex items-center" style={{ width: 56, height: 70 }}>
+      <svg width="56" height="70">
+        <defs>
+          <marker id={markerId} markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L7,3 L0,6 z" fill={color} />
+          </marker>
+        </defs>
+        <path d="M 2 35 Q 28 5 54 35" stroke={color} strokeWidth="1.5" fill="none" markerEnd={`url(#${markerId})`} strokeDasharray="4,3" />
+      </svg>
+      {label && <span className="absolute top-1 left-1/2 -translate-x-1/2 text-[9px] font-bold px-1 rounded whitespace-nowrap" style={{ backgroundColor:"#fff", color, border:`1px solid ${color}` }}>{label}</span>}
+    </div>
   );
 }
 
 function LinearChainView({ chain }:{ chain:any }) {
   return (
-    <div className="flex items-center gap-1 overflow-x-auto pb-2">
+    <div className="flex items-center overflow-x-auto pb-3 pt-2 px-1" style={{ backgroundColor:"#FAFBFC", borderRadius:12, border:"1px dashed #E8E9EB" }}>
       {chain.nodes.map((n:any, i:number) => (
-        <div key={i} className="flex items-center gap-1 shrink-0">
+        <div key={i} className="flex items-center shrink-0">
           <NodeCard n={n} color={chain.color} />
-          {i < chain.nodes.length - 1 && <Arrow id={chain.id} />}
+          {i < chain.nodes.length - 1 && <Connector id={`${chain.id}-${i}`} color={chain.color} />}
         </div>
       ))}
     </div>
@@ -5323,6 +5370,108 @@ function LinearChainView({ chain }:{ chain:any }) {
 }
 
 function BranchChainView({ chain }:{ chain:any }) {
+  // Dify/Coze style：上下两行布局，主线 + AI 支线（true），决策后主线下沉
+  const allNodes:any[] = chain.nodes;
+  const decisionIdx = allNodes.findIndex((n:any) => n.type === "decision");
+  const aiNodes = allNodes.filter((n:any) => n.branch === "ai_added");
+  const aiCount = aiNodes.length;
+  const mainCount = allNodes.filter((n:any) => n.branch === "main" || n.type === "decision").length;
+  const beforeDecision = decisionIdx >= 0 ? allNodes.slice(0, decisionIdx) : allNodes;
+  const decisionNode = decisionIdx >= 0 ? allNodes[decisionIdx] : null;
+  const afterDecision = decisionIdx >= 0 ? allNodes.slice(decisionIdx + 1) : [];
+
+  return (
+    <div className="rounded-xl p-3 overflow-x-auto" style={{ backgroundColor:"#FAFBFC", border:"1px dashed #E8E9EB" }}>
+      {/* 主线条（决策前） */}
+      <div className="flex items-start">
+        {beforeDecision.map((n:any, i:number) => (
+          <div key={`m${i}`} className="flex items-center shrink-0">
+            <NodeCard n={n} color={chain.color} />
+            <Connector id={`${chain.id}-m${i}`} color={chain.color} />
+          </div>
+        ))}
+        {decisionNode && (
+          <div className="flex items-start shrink-0">
+            <NodeCard n={decisionNode} color={DD_ORANGE} />
+          </div>
+        )}
+      </div>
+
+      {/* 决策后：true 走 AI 支线（紫色）· false 走主线 */}
+      {decisionNode && (
+        <div className="mt-3">
+          {/* AI 支线（true） */}
+          <div className="flex items-center">
+            <div className="shrink-0 pr-2" style={{ minWidth: 120 }}>
+              <span className="text-[10px] font-bold" style={{ color:"#722ED1" }}>true · 是</span>
+              <div className="text-[9px]" style={{ color:DD_GRAY }}>设备需更换</div>
+            </div>
+            <Connector id={`${chain.id}-t`} color="#722ED1" label="是" vertical />
+            <div className="flex items-center shrink-0">
+              {aiNodes.map((n:any, i:number) => (
+                <div key={`a${i}`} className="flex items-center shrink-0">
+                  <NodeCard n={n} color="#722ED1" isAiAdded />
+                  {i < aiNodes.length - 1 && <Connector id={`${chain.id}-a${i}`} color="#722ED1" />}
+                </div>
+              ))}
+              <div className="ml-2 flex flex-col items-center">
+                <span className="text-[9px] font-bold" style={{ color:"#722ED1" }}>↗ 汇回</span>
+                <span className="text-[9px]" style={{ color:"#722ED1" }}>到「AI 派单」</span>
+              </div>
+            </div>
+          </div>
+          {/* 主线（false） */}
+          {afterDecision.length > 0 && (
+            <div className="flex items-center mt-2">
+              <div className="shrink-0 pr-2" style={{ minWidth: 120 }}>
+                <span className="text-[10px] font-bold" style={{ color:DD_GRAY }}>false · 否</span>
+                <div className="text-[9px]" style={{ color:DD_GRAY }}>设备无需更换</div>
+              </div>
+              <Connector id={`${chain.id}-f`} color={chain.color} label="否" vertical />
+              <div className="flex items-center">
+                {afterDecision.map((n:any, i:number) => (
+                  <div key={`ad${i}`} className="flex items-center shrink-0">
+                    <NodeCard n={n} color={chain.color} />
+                    {i < afterDecision.length - 1 && <Connector id={`${chain.id}-ad${i}`} color={chain.color} />}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* 图例 + 统计 */}
+      <div className="flex items-center gap-3 mt-3 px-2 py-1.5 rounded-lg flex-wrap" style={{ backgroundColor:"#fff", border:"1px solid #E8E9EB" }}>
+        <div className="flex items-center gap-1">
+          <div className="w-3 h-3 rounded" style={{ backgroundColor: chain.color }} />
+          <span className="text-[10px]" style={{ color:DD_GRAY }}>主线节点</span>
+          <span className="text-[10px] font-bold ml-1" style={{ color: chain.color }}>{mainCount}</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <div className="w-3 h-3 rounded" style={{ backgroundColor:"#722ED1" }} />
+          <span className="text-[10px]" style={{ color:"#722ED1" }}>AI 加</span>
+          <span className="text-[10px] font-bold ml-1" style={{ color:"#722ED1" }}>{aiCount}</span>
+        </div>
+        <div className="flex items-center gap-1">
+          <div className="w-3 h-3 rotate-45" style={{ backgroundColor:"#FFF7E6", border:`1px dashed ${DD_ORANGE}` }} />
+          <span className="text-[10px]" style={{ color:DD_ORANGE }}>判断</span>
+        </div>
+        <div className="ml-auto text-[10px] flex items-center gap-1" style={{ color:"#722ED1" }}>
+          <Sparkles size={10} />
+          {chain.branchCondition}
+        </div>
+      </div>
+      <p className="text-[10px] mt-2" style={{ color:"#722ED1" }}>
+        💡 本月共触发 <b>{chain.branchHits + (chain.decisionHits?.no || 0)}</b> 次；
+        其中 <b style={{ color:DD_ORANGE }}>{chain.decisionHits?.yes || chain.branchHits}</b> 次判断"是"走 AI 分支，
+        <b style={{ color: chain.color }}>{chain.decisionHits?.no || 0}</b> 次判断"否"直接走 AI 派单。
+      </p>
+    </div>
+  );
+}
+
+function _OldBranchChainView_UNUSED({ chain }:{ chain:any }) {
   const allNodes:any[] = chain.nodes;
   // 找到决策点
   const decisionIdx = allNodes.findIndex((n:any) => n.type === "decision");
@@ -5422,27 +5571,7 @@ function BranchChainView({ chain }:{ chain:any }) {
   );
 }
 
-// 决策后的分叉箭头（"是"往下走 / "否"继续走主线条）
-function DecisionBranchArrow({ id, color }:{ id:string; color:string }) {
-  return (
-    <svg width="40" height="48" className="shrink-0">
-      <defs>
-        <marker id={`arrow-${id}-down`} markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-          <path d="M0,0 L6,3 L0,6 z" fill="#722ED1" />
-        </marker>
-        <marker id={`arrow-${id}`} markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
-          <path d="M0,0 L6,3 L0,6 z" fill={color} />
-        </marker>
-      </defs>
-      {/* "否"继续主线条（右上） */}
-      <text x="14" y="6" fontSize="8" fill={color} fontWeight="bold">否</text>
-      <path d="M 20 12 Q 30 6 36 12" stroke={color} strokeWidth="1.5" fill="none" markerEnd={`url(#arrow-${id})`} strokeDasharray="3,2" />
-      {/* "是"往下走到支线 */}
-      <text x="14" y="44" fontSize="8" fill="#722ED1" fontWeight="bold">是</text>
-      <path d="M 20 24 L 20 38 L 36 38" stroke="#722ED1" strokeWidth="1.5" fill="none" markerEnd={`url(#arrow-${id}-down)`} strokeDasharray="3,2" />
-    </svg>
-  );
-}
+// 决策后的分叉箭头已删除（合并到 Connector 组件中）
 
 function SuggestionsView() {
   const [accepted, setAccepted] = useState<Record<string, "accept" | "reject" | null>>({});
