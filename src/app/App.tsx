@@ -5,7 +5,7 @@ import {
   ThumbsUp, ThumbsDown, Copy, FileBarChart, BookOpen, ArrowLeft,
   CheckSquare, Zap, ChevronRight, Bot,
   MessageCircle, Calendar, FileText, LayoutGrid, Users, Cpu, Minus, Square,
-  CheckCircle2
+  CheckCircle2, Settings, Workflow, Sparkles, GitBranch, Plug, Activity, Eye, ThumbsUp, ThumbsDown
 } from "lucide-react";
 import logo from "@/imports/____LOGO.png";
 import aiAvatar from "@/imports/1___3x_21_.png";
@@ -3842,6 +3842,10 @@ export default function App() {
   const [showProjectEntryCard, setShowProjectEntryCard] = useState(false);
   const [showEntrySubTasks, setShowEntrySubTasks] = useState(false);
   const [showRepairSubTasks, setShowRepairSubTasks] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [showOrchestrator, setShowOrchestrator] = useState(false);
+  const [orchestratorTab, setOrchestratorTab] = useState<"library" | "suggestions" | "integrations">("library");
+  const [selectedChain, setSelectedChain] = useState<string | null>(null);
   const [completedCards, setCompletedCards] = useState<Set<string>>(new Set());
   const [messages, setMessages] = useState<Message[]>([{
     id:"m0", role:"agent", time:"09:00",
@@ -4126,6 +4130,12 @@ export default function App() {
       {showWeComMessages && (
         <WeComMessagesModal onClose={() => setShowWeComMessages(false)} />
       )}
+      {showOrchestrator && (
+        <OrchestratorCenter
+          tab={orchestratorTab} setTab={setOrchestratorTab}
+          selectedChain={selectedChain} setSelectedChain={setSelectedChain}
+          onClose={() => { setShowOrchestrator(false); setSelectedChain(null); }} />
+      )}
       {detailTask ? (
         <TaskDetail task={detailTask} onBack={()=>setDetailTask(null)} onAI={handleAIAssist} onInspectionDone={handleInspectionDone}
           onComplete={taskCardMap[detailTask.id] ? () => completeCard(taskCardMap[detailTask!.id]) : undefined}
@@ -4141,19 +4151,38 @@ export default function App() {
                   <p className="text-xs mt-0.5" style={{ color:DD_GRAY }}>我可以主动调度任务，分配排序，进行动作链编排以及代理操作</p>
                 </div>
               </div>
-              <button className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg text-white" style={{ backgroundColor:DD_BLUE }}>
-                <Plus size={11} />新建
-              </button>
+              <div className="flex items-center gap-1.5">
+                {isAdmin && (
+                  <button onClick={() => setShowOrchestrator(true)}
+                    className="flex items-center gap-1 text-xs px-2 py-1.5 rounded-lg"
+                    style={{ backgroundColor:"#F0F5FF", color:DD_BLUE, border:`1px solid ${DD_BLUE}30` }}
+                    title="编排中心（仅管理员可见）">
+                    <Settings size={11} />编排中心
+                  </button>
+                )}
+                <button className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg text-white" style={{ backgroundColor:DD_BLUE }}>
+                  <Plus size={11} />新建
+                </button>
+              </div>
             </div>
           </div>
           <div className="flex-1 overflow-y-auto" style={{ backgroundColor:"#F8F9FB" }}>
             {/* AI编排 banner */}
-            <div className="mx-3 mt-3 mb-2 rounded-xl px-3 py-2.5 flex items-center gap-2.5"
+            <div className="mx-3 mt-3 mb-2 rounded-xl px-3 py-2.5 flex items-center gap-2"
               style={{ backgroundColor:DD_BLUE_LIGHT, border:`1px solid ${DD_BLUE}25` }}>
-              <Zap size={14} className="shrink-0" style={{ color:DD_BLUE }} />
-              <p className="text-xs leading-snug" style={{ color:DD_BLUE }}>
-                AI已为您编排今日 <span className="font-bold">{totalVisible}</span> 项事务，按紧急程度排序，先处理红色标注项
+              <Zap size={13} className="shrink-0" style={{ color:DD_BLUE }} />
+              <p className="text-xs leading-snug flex-1" style={{ color:DD_BLUE }}>
+                AI 已按紧急程度排好今日 <b>{totalVisible}</b> 件事
               </p>
+              {isAdmin ? (
+                <button onClick={() => setShowOrchestrator(true)}
+                  className="text-[11px] font-medium shrink-0 px-2 py-0.5 rounded-md"
+                  style={{ backgroundColor:"#fff", color:DD_BLUE, border:`1px solid ${DD_BLUE}40` }}>
+                  看看 AI 是怎么安排的
+                </button>
+              ) : (
+                <span className="text-[10px] shrink-0" style={{ color:DD_GRAY }}>先做红色标注项</span>
+              )}
             </div>
             {/* ---- 分组内容 ---- */}
             <div className="px-3 pb-4 space-y-4">
@@ -4177,9 +4206,15 @@ export default function App() {
                         <span className="text-[10px] font-medium" style={{ color:DD_RED }}>今日截止</span>
                       </div>
                       <p className="text-sm font-semibold leading-snug mb-1" style={{ color:"#1F2329" }}>03栋大堂天花板渗水维修工单</p>
-                      <p className="text-xs leading-relaxed mb-2" style={{ color:DD_GRAY }}>AI提示：识别到现场需采购电线等设备，已自动拆解 5 步动作链，含请款审批流程</p>
+                      <p className="text-xs leading-relaxed mb-1.5" style={{ color:DD_GRAY }}>已为您安排：AI 识别需采购设备，自动拆解 5 步动作链</p>
+                      <p className="text-[10px] mb-2 flex items-center gap-2" style={{ color:DD_GRAY }}>
+                        <span>涉及系统：</span>
+                        <span className="flex items-center gap-1"><span style={{ color:DD_BLUE }}>💬</span>钉钉</span>
+                        <span className="flex items-center gap-1"><span style={{ color:DD_ORANGE }}>📋</span>工单系统</span>
+                        <span className="flex items-center gap-1"><span style={{ color:"#722ED1" }}>💰</span>SRM 请款</span>
+                      </p>
                       {/* 进度摘要：默认始终展示 */}
-                      <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg"
+                      <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg mb-1.5"
                         style={{ backgroundColor:"#F6FFED", border:`1px solid ${DD_GREEN}30` }}>
                         <CheckCircle2 size={12} style={{ color:DD_GREEN }} className="shrink-0" />
                         <span className="text-[11px] flex-1" style={{ color:"#1F2329" }}>
@@ -4191,6 +4226,14 @@ export default function App() {
                           {showRepairSubTasks ? "收起" : "查看全部 5 步"}
                           {showRepairSubTasks ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
                         </button>
+                      </div>
+                      {/* 接下来 AI 会自动 · 默认展示（降低员工焦虑） */}
+                      <div className="flex items-start gap-1.5 px-2.5 py-1.5 rounded-lg"
+                        style={{ backgroundColor:"#F0F5FF", border:`1px dashed ${DD_BLUE}40` }}>
+                        <Sparkles size={11} style={{ color:DD_BLUE }} className="shrink-0 mt-0.5" />
+                        <p className="text-[10.5px] leading-relaxed flex-1" style={{ color:"#1F2329" }}>
+                          <b style={{ color:DD_BLUE }}>接下来 AI 会自动</b>：⑤ 设备到货后立即派单给张师傅 → ⑥ 完工后钉钉通知 1203 业主。无需您介入。
+                        </p>
                       </div>
                     </div>
                     <button onClick={() => completeCard("mc-repair-leak")}
@@ -4235,7 +4278,7 @@ export default function App() {
                       );
                     })}
                     <p className="text-[10px] px-2 pt-1" style={{ color:DD_GRAY }}>
-                      💡 提示：常规维修单不会拆解，仅当 AI 识别需采购设备/走请款时自动展开动作链
+                      💡 常规维修单无需拆解；此单 AI 自动识别需走采购+请款，链路已自动展开
                     </p>
                   </div>
                 )}
@@ -4255,7 +4298,7 @@ export default function App() {
                         <span className="text-[10px] font-medium" style={{ color:DD_RED }}>今日截止</span>
                       </div>
                       <p className="text-sm font-semibold leading-snug mb-1" style={{ color:"#1F2329" }}>项目进场7日内交付任务清单</p>
-                      <p className="text-xs leading-relaxed" style={{ color:DD_GRAY }}>AI提示：进场关键节点任务，影响整体交付质量，需优先完成</p>
+                      <p className="text-xs leading-relaxed" style={{ color:DD_GRAY }}>已为您安排：今 16:00 前完成关键节点 + 自动派单至工程组</p>
                     </div>
                     <button onClick={e => { e.stopPropagation(); setShowEntrySubTasks(true); handleAIAssist(tasks.find(t=>t.id==="t3")!); }}
                       className="shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-medium text-white self-center"
@@ -4295,7 +4338,7 @@ export default function App() {
                         <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-full text-white shrink-0" style={{ backgroundColor:DD_RED }}>11</span>
                         企业微信未读消息
                       </p>
-                      <p className="text-xs leading-relaxed" style={{ color:DD_GRAY }}>业主发起 · 4位业主/群组有未读消息待处理</p>
+                      <p className="text-xs leading-relaxed" style={{ color:DD_GRAY }}>已为您安排：AI 已读摘要 + 4 位业主分类标签，点开即可一键回复</p>
                     </div>
                     <button onClick={e => { e.stopPropagation(); setShowWeComMessages(true); }}
                       className="shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-medium text-white self-center"
@@ -4315,7 +4358,7 @@ export default function App() {
                         <span className="text-[10px] font-medium" style={{ color:DD_RED }}>今日截止</span>
                       </div>
                       <p className="text-sm font-semibold leading-snug mb-1" style={{ color:"#1F2329" }}>供应商B续签合同审批</p>
-                      <p className="text-xs leading-relaxed" style={{ color:DD_GRAY }}>AI提示：涉及年度合规，超期将导致服务中断，建议立即审批</p>
+                      <p className="text-xs leading-relaxed" style={{ color:DD_GRAY }}>已为您安排：法务智能体已预审 + 风险点已标红，您只需 2 分钟确认</p>
                     </div>
                     <button onClick={e => { e.stopPropagation(); setDetailTask(tasks.find(t=>t.id==="t1")||null); }}
                       className="shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-medium text-white self-center"
@@ -4338,7 +4381,7 @@ export default function App() {
                         <span className="text-[10px] font-medium px-1.5 py-0.5 rounded" style={{ backgroundColor:"#FFF1F0", color:DD_RED }}>⚡ 加急</span>
                       </div>
                       <p className="text-sm font-semibold leading-snug mb-1" style={{ color:"#1F2329" }}>SRM合同审批 · 时代云图（佛山）二期车场改造合同</p>
-                      <p className="text-xs leading-relaxed" style={{ color:DD_GRAY }}>AI法务智能体识别到2处条款冲突风险，另含8项常规审批可一键处理</p>
+                      <p className="text-xs leading-relaxed" style={{ color:DD_GRAY }}>已为您安排：法务智能体标出 2 处冲突 + 8 项常规审批可一键放行</p>
                     </div>
                     <button onClick={e => { e.stopPropagation(); handleAIAssist(tasks.find(t=>t.id==="t7")!); }}
                       className="shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-medium text-white self-center"
@@ -4365,7 +4408,7 @@ export default function App() {
                         <span className="text-[10px]" style={{ color:DD_GRAY }}>今日完成</span>
                       </div>
                       <p className="text-sm font-semibold leading-snug mb-1" style={{ color:"#1F2329" }}>住区网格化安全巡检</p>
-                      <p className="text-xs leading-relaxed" style={{ color:DD_GRAY }}>AI提示：今日下午完成并提交巡检记录，每日必执行项</p>
+                      <p className="text-xs leading-relaxed" style={{ color:DD_GRAY }}>已为您安排：今 17:30 自动汇总 + 异常项自动派单，提交只需 1 次点击</p>
                     </div>
                     <button onClick={e => { e.stopPropagation(); setDetailTask(tasks.find(t=>t.id==="t4")||null); }}
                       className="shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-medium text-white self-center"
@@ -4387,7 +4430,7 @@ export default function App() {
                         <span className="text-[10px] font-medium px-1.5 py-0.5 rounded animate-pulse" style={{ backgroundColor:"#FFF1F0", color:DD_RED }}>⚡ 加急</span>
                       </div>
                       <p className="text-sm font-semibold leading-snug mb-1" style={{ color:"#1F2329" }}>SRM合同审批 · 时代云图（佛山）二期车场改造合同</p>
-                      <p className="text-xs leading-relaxed" style={{ color:DD_GRAY }}>AI法务智能体识别到2处条款冲突风险，另含8项常规审批可一键处理</p>
+                      <p className="text-xs leading-relaxed" style={{ color:DD_GRAY }}>已为您安排：法务智能体标出 2 处冲突 + 8 项常规审批可一键放行</p>
                     </div>
                     <button onClick={e => { e.stopPropagation(); handleAIAssist(tasks.find(t=>t.id==="t7")!); }}
                       className="shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-medium text-white self-center"
@@ -4669,9 +4712,17 @@ export default function App() {
                     <Bell size={16} style={{ color:DD_GRAY }} className="cursor-pointer" onClick={() => setNotifPanelOpen(true)} />
                     <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full text-white flex items-center justify-center text-[8px]" style={{ backgroundColor:DD_RED }}>3</span>
                   </div>
-                  <div className="flex items-center gap-1.5 cursor-pointer">
-                    <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor:DD_BLUE }}>项</div>
-                    <span className="text-xs hidden sm:inline" style={{ color:"#1F2329" }}>项目经理</span>
+                  <div className="flex items-center gap-1.5 cursor-pointer"
+                    onClick={() => setIsAdmin(v => !v)}
+                    title={isAdmin ? "切换为员工视角" : "切换为管理员视角"}>
+                    <div className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                      style={{ backgroundColor: isAdmin ? "#722ED1" : DD_BLUE }}>{isAdmin ? "管" : "项"}</div>
+                    <div className="flex flex-col leading-none hidden sm:flex">
+                      <span className="text-xs" style={{ color:"#1F2329" }}>{isAdmin ? "陈经理" : "项目经理"}</span>
+                      <span className="text-[9px] mt-0.5" style={{ color: isAdmin ? "#722ED1" : DD_GRAY }}>
+                        {isAdmin ? "⚙ 管理员" : "一线员工"}
+                      </span>
+                    </div>
                     <ChevronDown size={11} style={{ color:DD_GRAY }} />
                   </div>
                 </div>
@@ -4848,6 +4899,340 @@ export default function App() {
             </div>
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// 编排中心 · 全屏弹层（仅管理员可见）
+// ════════════════════════════════════════════════════════════════════════════
+const ORCH_CHAINS = [
+  { id:"c1", title:"业主报修链路", trigger:"💬 钉钉群 · msg.contains(\"报修\") && channel=='业主群'", systems:["💬 钉钉","📋 工单","💰 SRM"], status:"enabled", runs:47, success:"98%", icon:"🔧", color:DD_BLUE,
+    nodes:[ {label:"识别报修意图",system:"钉钉",icon:"💬"}, {label:"建工单",system:"工单系统",icon:"📋"}, {label:"AI 派单",system:"工单系统",icon:"🤖"}, {label:"通知住户",system:"钉钉",icon:"📲"} ] },
+  { id:"c2", title:"合同到期预警链路", trigger:"📄 SRM · 合同到期前 30 天 && type=='服务合同'", systems:["📄 SRM","💬 钉钉","⚖ 法务"], status:"enabled", runs:5, success:"100%", icon:"📄", color:"#722ED1",
+    nodes:[ {label:"识别到期",system:"SRM",icon:"📄"}, {label:"起草续签",system:"法务",icon:"⚖"}, {label:"发起审批",system:"钉钉",icon:"📋"}, {label:"归档",system:"SRM",icon:"🗂"} ] },
+  { id:"c3", title:"台风应急链路", trigger:"🌪 气象 API · level >= '蓝色' && inSeason", systems:["🌪 气象","💬 钉钉","📋 工单"], status:"seasonal", runs:0, success:"—", icon:"🌪", color:DD_ORANGE,
+    nodes:[ {label:"气象预警",system:"气象API",icon:"🌪"}, {label:"推业主",system:"钉钉",icon:"📲"}, {label:"备沙袋",system:"工单",icon:"📋"}, {label:"应急待命",system:"工单",icon:"🚨"} ] },
+  { id:"c4", title:"业主投诉升级链路", trigger:"💬 钉钉 · 投诉超 24h 未响应", systems:["💬 钉钉","📋 工单","👤 人事"], status:"enabled", runs:2, success:"100%", icon:"📢", color:DD_RED,
+    nodes:[ {label:"超时检测",system:"钉钉",icon:"⏰"}, {label:"升级主管",system:"钉钉",icon:"📞"}, {label:"大管家介入",system:"人事",icon:"👤"}, {label:"回访业主",system:"钉钉",icon:"📲"} ] },
+  { id:"c5", title:"物业费催缴链路", trigger:"💰 物业费系统 · 欠费超 90 天", systems:["💰 物业费","💬 钉钉","📲 短信"], status:"enabled", runs:12, success:"92%", icon:"💰", color:"#FAAD14",
+    nodes:[ {label:"对账异常",system:"物业费",icon:"💰"}, {label:"分级催缴方案",system:"AI",icon:"🧠"}, {label:"推管家群",system:"钉钉",icon:"📲"}, {label:"短信催缴",system:"短信网关",icon:"📨"} ] },
+];
+const ORCH_SUGGESTIONS = [
+  { id:"s1", icon:"🛗", title:"电梯故障专用链路", pattern:"每周一上午 9-10 点 · 业主群含「电梯」关键词的消息量突增 380%", evidence:"7 天内检测到 14 次相似消息", proposed:"当 msg.contains('电梯') && msg.contains('故障') && hour∈[9,10] → 自动建电梯专单 + 同步维保单位" },
+  { id:"s2", icon:"🔇", title:"噪音投诉独立链路", pattern:"03 栋管家对'噪音'类工单平均处理时长比全项目高 2.4 小时", evidence:"过去 30 天 8 笔工单数据", proposed:"当 type=='噪音投诉' && 楼栋=='03栋' → 优先派单 + 自动同步楼栋管家" },
+  { id:"s3", icon:"📦", title:"采购入库异常链路", pattern:"近 30 天 SRM 采购单平均入库时长 4.2 天，其中 17% 超 7 天", evidence:"23 笔采购单数据", proposed:"当 SRM 采购单超 5 天未入库 → 自动催办供应商 + 通知申请人" },
+];
+const ORCH_SYSTEMS = [
+  { name:"钉钉消息", icon:"💬", status:"online", lastSync:"2 分钟前", events:127, color:DD_BLUE },
+  { name:"SRM 合同系统", icon:"📄", status:"online", lastSync:"5 分钟前", events:5, color:"#722ED1" },
+  { name:"工单系统", icon:"📋", status:"online", lastSync:"刚刚", events:12, color:DD_ORANGE },
+  { name:"物业费系统", icon:"💰", status:"online", lastSync:"1 小时前", events:3, color:"#FAAD14" },
+  { name:"钉钉日程", icon:"📅", status:"online", lastSync:"10 分钟前", events:8, color:DD_GREEN },
+  { name:"企微", icon:"💼", status:"online", lastSync:"30 分钟前", events:21, color:"#13C2C2" },
+  { name:"气象 API", icon:"🌪", status:"online", lastSync:"1 小时前", events:0, color:DD_BLUE, badge:"免费版" },
+  { name:"政府报建系统", icon:"🏛", status:"offline", lastSync:"2 天前", events:0, color:DD_GRAY, badge:"维护中" },
+];
+
+function OrchestratorCenter({ tab, setTab, selectedChain, setSelectedChain, onClose }:{
+  tab: "library" | "suggestions" | "integrations";
+  setTab: (t: "library" | "suggestions" | "integrations") => void;
+  selectedChain: string | null;
+  setSelectedChain: (id: string | null) => void;
+  onClose: () => void;
+}) {
+  const chain = selectedChain ? ORCH_CHAINS.find(c => c.id === selectedChain) : null;
+  return (
+    <div className="fixed inset-0 z-[500] flex flex-col" style={{ backgroundColor:"rgba(0,0,0,0.45)" }}
+      onClick={onClose}>
+      <div className="flex-1 m-3 md:m-6 rounded-2xl overflow-hidden flex flex-col shadow-2xl"
+        style={{ backgroundColor:"#F8F9FB" }}
+        onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 h-14 shrink-0 border-b" style={{ backgroundColor:"#fff", borderColor:"#E8E9EB" }}>
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor:"#F0F5FF" }}>
+              <Workflow size={16} style={{ color:DD_BLUE }} />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold" style={{ color:"#1F2329" }}>AI 编排中心</h2>
+              <p className="text-[10px] mt-0.5" style={{ color:DD_GRAY }}>查看/管理后台所有动作链 · 仅管理员可见</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-gray-100" style={{ color:DD_GRAY }}>
+            <X size={16} />
+          </button>
+        </div>
+        <div className="flex items-center gap-1 px-5 pt-3 shrink-0" style={{ backgroundColor:"#fff" }}>
+          {[
+            { key:"library" as const, label:"链路库", icon:<GitBranch size={13}/>, badge:"5" },
+            { key:"suggestions" as const, label:"AI 建议", icon:<Sparkles size={13}/>, badge:"3", hot:true },
+            { key:"integrations" as const, label:"跨系统连接", icon:<Plug size={13}/>, badge:"8" },
+          ].map(t => (
+            <button key={t.key} onClick={() => { setTab(t.key); setSelectedChain(null); }}
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-t-lg border-b-2"
+              style={{
+                color: tab===t.key ? DD_BLUE : DD_GRAY,
+                borderBottomColor: tab===t.key ? DD_BLUE : "transparent",
+                backgroundColor: tab===t.key ? DD_BLUE_LIGHT : "transparent",
+              }}>
+              {t.icon}{t.label}
+              <span className="text-[9px] px-1.5 py-0.5 rounded-full font-bold"
+                style={{ backgroundColor: t.hot && tab!==t.key ? DD_RED : tab===t.key ? DD_BLUE : DD_GRAY_LIGHT,
+                  color: (t.hot && tab!==t.key) || tab===t.key ? "#fff" : DD_GRAY }}>
+                {t.badge}
+              </span>
+            </button>
+          ))}
+        </div>
+        <div className="flex-1 overflow-y-auto p-5">
+          {tab === "library" && !chain && <LibraryView onSelect={(id) => setSelectedChain(id)} />}
+          {tab === "library" && chain && <ChainDetail chain={chain} onBack={() => setSelectedChain(null)} />}
+          {tab === "suggestions" && <SuggestionsView />}
+          {tab === "integrations" && <IntegrationsView />}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LibraryView({ onSelect }:{ onSelect:(id:string)=>void }) {
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <h3 className="text-sm font-semibold" style={{ color:"#1F2329" }}>已配置的 AI 动作链路</h3>
+          <p className="text-[11px] mt-0.5" style={{ color:DD_GRAY }}>共 5 条 · 4 条启用中 · 1 条季节性（仅台风季）</p>
+        </div>
+        <button className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg text-white" style={{ backgroundColor:DD_BLUE }}>
+          <Plus size={11}/>新建链路
+        </button>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+        {ORCH_CHAINS.map(c => (
+          <div key={c.id} onClick={() => onSelect(c.id)}
+            className="bg-white rounded-xl p-3.5 cursor-pointer hover:shadow-md transition-shadow"
+            style={{ border:"1px solid #E8E9EB" }}>
+            <div className="flex items-start gap-2 mb-2">
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center text-lg shrink-0"
+                style={{ backgroundColor:`${c.color}15` }}>{c.icon}</div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold truncate" style={{ color:"#1F2329" }}>{c.title}</p>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  {c.status === "enabled" ? (
+                    <span className="text-[10px] font-medium px-1.5 py-0.5 rounded" style={{ backgroundColor:"#F6FFED", color:DD_GREEN }}>● 启用中</span>
+                  ) : (
+                    <span className="text-[10px] font-medium px-1.5 py-0.5 rounded" style={{ backgroundColor:DD_ORANGE_LIGHT, color:DD_ORANGE }}>⏸ 季节性</span>
+                  )}
+                </div>
+              </div>
+            </div>
+            <p className="text-[10.5px] font-mono px-2 py-1 rounded mb-2 leading-relaxed" style={{ backgroundColor:"#F5F6F8", color:DD_GRAY }}>
+              {c.trigger}
+            </p>
+            <div className="flex items-center gap-1.5 flex-wrap mb-2">
+              {c.systems.map(s => <span key={s} className="text-[10px] px-1.5 py-0.5 rounded" style={{ backgroundColor:DD_GRAY_LIGHT, color:DD_GRAY }}>{s}</span>)}
+            </div>
+            <div className="flex items-center justify-between pt-2 border-t" style={{ borderColor:"#F0F2F5" }}>
+              <span className="text-[10px]" style={{ color:DD_GRAY }}>本月触发 <b style={{ color:"#1F2329" }}>{c.runs}</b> 次</span>
+              <span className="text-[10px]" style={{ color: c.success==="—" ? DD_GRAY : DD_GREEN }}>成功率 {c.success}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ChainDetail({ chain, onBack }:{ chain:typeof ORCH_CHAINS[0]; onBack:()=>void }) {
+  return (
+    <div>
+      <button onClick={onBack} className="flex items-center gap-1 text-xs mb-3" style={{ color:DD_BLUE }}>
+        <ArrowLeft size={12}/>返回链路库
+      </button>
+      <div className="bg-white rounded-xl p-4 mb-3" style={{ border:"1px solid #E8E9EB" }}>
+        <div className="flex items-center gap-3 mb-3">
+          <div className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl" style={{ backgroundColor:`${chain.color}15` }}>{chain.icon}</div>
+          <div className="flex-1">
+            <h3 className="text-base font-bold" style={{ color:"#1F2329" }}>{chain.title}</h3>
+            <div className="flex items-center gap-3 mt-1">
+              <span className="text-[11px]" style={{ color:DD_GRAY }}>本月触发 <b style={{ color:DD_BLUE }}>{chain.runs}</b> 次</span>
+              <span className="text-[11px]" style={{ color:DD_GRAY }}>成功率 <b style={{ color:DD_GREEN }}>{chain.success}</b></span>
+              <span className="text-[11px]" style={{ color:DD_GRAY }}>平均耗时 <b style={{ color:DD_ORANGE }}>8.4s</b></span>
+            </div>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <div className="rounded-lg p-3" style={{ backgroundColor:"#FFF7E6", border:`1px solid ${DD_ORANGE}30` }}>
+            <div className="flex items-center gap-1.5 mb-2">
+              <Zap size={12} style={{ color:DD_ORANGE }}/>
+              <span className="text-[11px] font-bold" style={{ color:DD_ORANGE }}>触发条件 · WHEN</span>
+            </div>
+            <code className="text-[11px] font-mono leading-relaxed block" style={{ color:"#1F2329" }}>
+              {chain.trigger}
+            </code>
+          </div>
+          <div className="rounded-lg p-3" style={{ backgroundColor:"#F0F5FF", border:`1px solid ${DD_BLUE}30` }}>
+            <div className="flex items-center gap-1.5 mb-2">
+              <Plug size={12} style={{ color:DD_BLUE }}/>
+              <span className="text-[11px] font-bold" style={{ color:DD_BLUE }}>跨系统联动 · {chain.systems.length} 个系统</span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {chain.systems.map(s => <span key={s} className="text-[11px] px-2 py-0.5 rounded font-medium" style={{ backgroundColor:"#fff", color:"#1F2329", border:`1px solid ${DD_BLUE}30` }}>{s}</span>)}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="bg-white rounded-xl p-4" style={{ border:"1px solid #E8E9EB" }}>
+        <div className="flex items-center gap-1.5 mb-3">
+          <Activity size={13} style={{ color:DD_BLUE }}/>
+          <span className="text-sm font-semibold" style={{ color:"#1F2329" }}>动作链可视化 · 4 步</span>
+          <span className="text-[10px] ml-auto" style={{ color:DD_GRAY }}>从左到右：触发 → 执行 → 收尾</span>
+        </div>
+        <div className="flex items-center gap-1 overflow-x-auto pb-2">
+          {chain.nodes.map((n, i) => (
+            <div key={i} className="flex items-center gap-1 shrink-0">
+              <div className="rounded-xl px-3 py-2.5 text-center" style={{ backgroundColor:`${chain.color}10`, border:`1.5px solid ${chain.color}`, minWidth:108 }}>
+                <div className="text-xl mb-1">{n.icon}</div>
+                <div className="text-[11px] font-bold" style={{ color:"#1F2329" }}>{n.label}</div>
+                <div className="text-[9px] mt-0.5" style={{ color:DD_GRAY }}>{n.system}</div>
+              </div>
+              {i < chain.nodes.length - 1 && (
+                <svg width="40" height="24" className="shrink-0">
+                  <defs>
+                    <marker id={`arrow-${chain.id}`} markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+                      <path d="M0,0 L6,3 L0,6 z" fill={DD_GRAY} />
+                    </marker>
+                  </defs>
+                  <path d="M 2 12 Q 20 -2 36 12" stroke={DD_GRAY} strokeWidth="1.5" fill="none" markerEnd={`url(#arrow-${chain.id})`} strokeDasharray="3,2" />
+                </svg>
+              )}
+            </div>
+          ))}
+        </div>
+        <p className="text-[10px] mt-3 pt-3 border-t" style={{ color:DD_GRAY, borderColor:"#F0F2F5" }}>
+          💡 此链路员工感知为零：业主消息进来时，链路自动跑通，仅在任务卡上展示「已为您安排」结果
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function SuggestionsView() {
+  const [accepted, setAccepted] = useState<Record<string, "accept" | "reject" | null>>({});
+  return (
+    <div>
+      <div className="rounded-xl p-3 mb-4 flex items-start gap-2" style={{ backgroundColor:"#F0F5FF", border:`1px solid ${DD_BLUE}30` }}>
+        <Sparkles size={14} style={{ color:DD_BLUE }} className="shrink-0 mt-0.5"/>
+        <div>
+          <p className="text-xs font-semibold" style={{ color:DD_BLUE }}>AI 在过去 7 天自主观察到 3 个新模式</p>
+          <p className="text-[11px] mt-1" style={{ color:"#1F2329" }}>
+            AI 会基于历史数据自动发现可优化的链路，一键采纳即可上线；建议由您最终确认。
+          </p>
+        </div>
+      </div>
+      <div className="space-y-3">
+        {ORCH_SUGGESTIONS.map(s => {
+          const state = accepted[s.id];
+          return (
+            <div key={s.id} className="bg-white rounded-xl p-4" style={{ border: state==="accept" ? `1.5px solid ${DD_GREEN}` : "1px solid #E8E9EB", opacity: state==="reject" ? 0.55 : 1 }}>
+              <div className="flex items-start gap-3">
+                <div className="text-3xl shrink-0">{s.icon}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Sparkles size={11} style={{ color:"#722ED1" }}/>
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded" style={{ backgroundColor:"#F9F0FF", color:"#722ED1" }}>AI 建议</span>
+                    <h4 className="text-sm font-semibold" style={{ color:"#1F2329" }}>{s.title}</h4>
+                  </div>
+                  <p className="text-[11.5px] mb-1.5 leading-relaxed" style={{ color:"#1F2329" }}>
+                    <b style={{ color:DD_ORANGE }}>📊 观察到的模式：</b>{s.pattern}
+                  </p>
+                  <p className="text-[11px] mb-1.5" style={{ color:DD_GRAY }}>📁 {s.evidence}</p>
+                  <div className="rounded-lg p-2 mt-2" style={{ backgroundColor:"#F5F6F8" }}>
+                    <p className="text-[11px] font-mono leading-relaxed" style={{ color:"#1F2329" }}>
+                      <b style={{ color:DD_BLUE }}>💡 建议链路：</b>{s.proposed}
+                    </p>
+                  </div>
+                  {state == null && (
+                    <div className="flex items-center gap-2 mt-3">
+                      <button onClick={() => setAccepted(p => ({...p, [s.id]:"accept"}))}
+                        className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg text-white font-medium"
+                        style={{ backgroundColor:DD_GREEN }}>
+                        <ThumbsUp size={11}/>一键采纳并上线
+                      </button>
+                      <button onClick={() => setAccepted(p => ({...p, [s.id]:"reject"}))}
+                        className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg"
+                        style={{ backgroundColor:DD_GRAY_LIGHT, color:DD_GRAY }}>
+                        <ThumbsDown size={11}/>忽略
+                      </button>
+                      <button className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg"
+                        style={{ color:DD_BLUE }}>
+                        <Eye size={11}/>预览完整链路
+                      </button>
+                    </div>
+                  )}
+                  {state === "accept" && (
+                    <div className="mt-3 px-3 py-2 rounded-lg flex items-center gap-2" style={{ backgroundColor:"#F6FFED", border:`1px solid ${DD_GREEN}` }}>
+                      <CheckCircle2 size={13} style={{ color:DD_GREEN }}/>
+                      <span className="text-[11px] font-medium" style={{ color:DD_GREEN }}>已采纳 · 新链路 5 秒后自动上线，全员可见</span>
+                    </div>
+                  )}
+                  {state === "reject" && (
+                    <div className="mt-3 px-3 py-2 rounded-lg" style={{ backgroundColor:DD_GRAY_LIGHT }}>
+                      <span className="text-[11px]" style={{ color:DD_GRAY }}>已忽略 · 30 天内不再推荐</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function IntegrationsView() {
+  return (
+    <div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+        {[
+          { label:"已接入系统", value:"8", sub:"+2 本月", color:DD_BLUE, icon:<Plug size={14}/> },
+          { label:"今日事件触发", value:"127", sub:"vs 昨日 +18%", color:DD_ORANGE, icon:<Zap size={14}/> },
+          { label:"跨系统数据流转", value:"43", sub:"今日累计", color:DD_GREEN, icon:<Activity size={14}/> },
+          { label:"AI 自主修复", value:"2", sub:"本周", color:"#722ED1", icon:<Sparkles size={14}/> },
+        ].map((s,i) => (
+          <div key={i} className="bg-white rounded-xl p-3.5" style={{ border:"1px solid #E8E9EB" }}>
+            <div className="flex items-center justify-between mb-1.5">
+              <span className="text-[11px]" style={{ color:DD_GRAY }}>{s.label}</span>
+              <div className="w-6 h-6 rounded-md flex items-center justify-center" style={{ backgroundColor:`${s.color}15`, color:s.color }}>{s.icon}</div>
+            </div>
+            <p className="text-2xl font-bold" style={{ color:s.color }}>{s.value}</p>
+            <p className="text-[10px] mt-0.5" style={{ color:DD_GRAY }}>{s.sub}</p>
+          </div>
+        ))}
+      </div>
+      <h3 className="text-sm font-semibold mb-2" style={{ color:"#1F2329" }}>已接入系统</h3>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+        {ORCH_SYSTEMS.map(s => (
+          <div key={s.name} className="bg-white rounded-xl p-3" style={{ border:"1px solid #E8E9EB" }}>
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-9 h-9 rounded-lg flex items-center justify-center text-xl" style={{ backgroundColor:`${s.color}15` }}>{s.icon}</div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold truncate" style={{ color:"#1F2329" }}>{s.name}</p>
+                <div className="flex items-center gap-1 mt-0.5">
+                  <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: s.status==="online" ? DD_GREEN : DD_GRAY }} />
+                  <span className="text-[10px]" style={{ color: s.status==="online" ? DD_GREEN : DD_GRAY }}>{s.status==="online" ? "在线" : "离线"}</span>
+                  {s.badge && <span className="text-[9px] px-1 py-0.5 rounded ml-auto" style={{ backgroundColor:DD_GRAY_LIGHT, color:DD_GRAY }}>{s.badge}</span>}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center justify-between text-[10px] pt-2 border-t" style={{ borderColor:"#F0F2F5", color:DD_GRAY }}>
+              <span>最后同步 · {s.lastSync}</span>
+              <span>今日 <b style={{ color:DD_BLUE }}>{s.events}</b> 次</span>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   );
