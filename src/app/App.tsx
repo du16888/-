@@ -72,7 +72,7 @@ const PROJECT = "时代云图（佛山）二期";
 
 const tasks: Task[] = [
   { id:"t1", project:PROJECT, title:"消防设备维护运维合同审查", type:"合同审查", status:"urgent", assignee:"郑赵峰", deadline:"2026.06.30", desc:"配套消防设备维护运维合同已超期，需与配套消防公司（CC2）重新签署，并完成合同条款合规审查。AI已完成初步条款比对，可自动识别关键风险条款，待人工确认后完成审查签订。", priority:"high", steps:["核查现有合同到期情况","上传合同至AI识别关键条款","确认审查结果并提交签字","归档备案"] },
-  { id:"t2", project:PROJECT, title:"03栋大堂天花板渗水维修工单", type:"工单", status:"processing", assignee:"工程维修组", deadline:"2026.06.25", desc:"03栋大堂天花板发现渗水迹象，已拍照存档并生成维修工单。工程组已派人查看，需跟进维修进度并确认修复效果，今日内处理完毕。", priority:"high", steps:["现场查看渗水原因","联系专业维修人员","完成维修并拍照记录","通知物业经理验收"] },
+  { id:"t2", project:PROJECT, title:"维修工单：03栋大堂天花板渗水", type:"维修工单", status:"processing", assignee:"工程维修组", deadline:"2026.06.25", desc:"03栋大堂天花板发现渗水迹象，已拍照存档并生成维修工单。AI 识别需采购电线等设备，自动拆解 5 步动作链。", priority:"high", steps:["查看库存","申请设备请款","财务审批通过","采购入库","派单维修+通知业主"] },
   { id:"t3", project:PROJECT, title:"停车场经营方案制定", type:"项目进场", status:"new", assignee:"项目经理", deadline:"进场后7天内", dept:"项目管理部", tags:["空间运营","公共资源"], desc:"停车场经营方案制定，并完成定价方案审批（前提为车场已竣备交付）", priority:"medium", steps:["提交审批内容","AI协助检查","AI检查完成提交流程审批"] },
   { id:"t4", project:PROJECT, title:"网格化日常安全巡查", type:"巡检任务", status:"new", assignee:"网格-建筑维修组", deadline:"2026.06.25", desc:"网格化建筑维修组日常巡查任务，需对各网格内终端设备进行清点，记录损耗情况，处理巡查中发现的工单问题，确保24小时内响应。", priority:"medium", steps:["开始网格巡查","语音记录问题与终端清点","AI识别生成工单和清点报告","提交并继续下一网格"] },
   { id:"t6", project:PROJECT, title:"业主满意度回访客户跟进", type:"客户跟进", status:"processing", assignee:"客服部", deadline:"2026.06.28", desc:"针对上季度满意度调研中有投诉反馈的业主进行复访跟进，了解问题解决情况，记录业主意见并汇总分析结果，提交管理层用于服务改善参考。", priority:"medium", steps:["整理上季度满意度数据","制定回访话术","执行电话回访","汇总反馈报告"] },
@@ -3841,7 +3841,6 @@ export default function App() {
   const [srmEscalated, setSrmEscalated] = useState(false);
   const [showProjectEntryCard, setShowProjectEntryCard] = useState(false);
   const [showEntrySubTasks, setShowEntrySubTasks] = useState(false);
-  const [showRepairSubTasks, setShowRepairSubTasks] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [showOrchestrator, setShowOrchestrator] = useState(false);
   const [orchestratorTab, setOrchestratorTab] = useState<"library" | "suggestions" | "integrations">("library");
@@ -4072,6 +4071,14 @@ export default function App() {
         { label: "📊 查看完整进场任务清单", prompt: "查看全部进场任务" },
       ];
       setTimeout(() => streamMessage(fullText, actionable), 400);
+    } else if (task.type === "维修工单") {
+      const fullText = `🔧 已接手「${task.title}」，AI 正在为您播报进度：\n\n✅ AI 已完成前 3 步：\n① 查看库存 · 确认无电线类设备（06-29 14:20）\n② 申请设备请款 · 发起审批流程（06-29 14:35）\n③ 申请完成 · 待财务审批通过（06-29 16:42）\n\n🟠 当前进度：④ 待采购入库\n   供应商已确认，预计 06-30 上午到货。\n\n🤖 接下来 AI 会自动：\n⑤ 设备到货后立即派单给张师傅\n⑥ 完工后钉钉通知 1203 业主\n\n整个链路无需您介入。设备到货时会同步通知您。`;
+      const actionable = [
+        { label: "📦 催办采购进度", prompt: "请帮我催一下本次采购的入库进度" },
+        { label: "🔍 查看完整动作链", prompt: "查看这个维修工单的完整动作链" },
+        { label: "👷 联系张师傅", prompt: "帮我联系张师傅确认维修时间" },
+      ];
+      setTimeout(() => streamMessage(fullText, actionable), 400);
     } else {
       setMessages(prev=>[...prev, { id:"tp"+Date.now(), role:"agent", content:"", time:"", typing:true }]);
       setTimeout(()=>{
@@ -4193,10 +4200,10 @@ export default function App() {
                   <span className="text-[11px] font-bold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor:DD_RED }}>立即处理</span>
                   <span className="text-[10px]" style={{ color:DD_GRAY }}>{urgentVisible.length}件 · 今日截止或超期</span>
                 </div>
-                {/* 维修工单 · AI 拆解 5 步动作链 */}
+                {/* 维修工单 · 卡片瘦身版 · 点开弹 AI 助理看 5 步拆解 */}
                 {!completedCards.has("mc-repair-leak") && (
-                <>
-                <div className="bg-white rounded-xl p-3 mb-2 shadow-sm"
+                <div onClick={() => { handleAIAssist(tasks.find(t=>t.id==="t2")!); }}
+                  className="bg-white rounded-xl p-3 mb-2 shadow-sm cursor-pointer"
                   style={{ border:"1px solid #FFD6D6", borderLeft:`3px solid ${DD_RED}` }}>
                   <div className="flex items-start gap-3">
                     <div className="flex-1 min-w-0">
@@ -4205,29 +4212,7 @@ export default function App() {
                         <span className="text-[10px] font-medium px-1.5 py-0.5 rounded" style={{ backgroundColor:"#F0F5FF", color:DD_BLUE }}>⚙ AI 拆解 5 步</span>
                         <span className="text-[10px] font-medium" style={{ color:DD_RED }}>今日截止</span>
                       </div>
-                      <p className="text-sm font-semibold leading-snug mb-1" style={{ color:"#1F2329" }}>03栋大堂天花板渗水维修工单</p>
-                      <p className="text-xs leading-relaxed mb-1.5" style={{ color:DD_GRAY }}>已为您安排：AI 识别需采购设备，自动拆解 5 步动作链</p>
-                      <p className="text-[10px] mb-2 flex items-center gap-2" style={{ color:DD_GRAY }}>
-                        <span>涉及系统：</span>
-                        <span className="flex items-center gap-1"><span style={{ color:DD_BLUE }}>💬</span>钉钉</span>
-                        <span className="flex items-center gap-1"><span style={{ color:DD_ORANGE }}>📋</span>工单系统</span>
-                        <span className="flex items-center gap-1"><span style={{ color:"#722ED1" }}>💰</span>SRM 请款</span>
-                      </p>
-                      {/* 进度摘要：默认始终展示 */}
-                      <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg mb-1.5"
-                        style={{ backgroundColor:"#F6FFED", border:`1px solid ${DD_GREEN}30` }}>
-                        <CheckCircle2 size={12} style={{ color:DD_GREEN }} className="shrink-0" />
-                        <span className="text-[11px] flex-1" style={{ color:"#1F2329" }}>
-                          AI 已完成前 3 步 · 当前进度：<b style={{ color:DD_ORANGE }}>④ 待采购入库</b>
-                        </span>
-                        <button onClick={() => setShowRepairSubTasks(v => !v)}
-                          className="shrink-0 text-[11px] font-medium flex items-center gap-0.5"
-                          style={{ color:DD_BLUE }}>
-                          {showRepairSubTasks ? "收起" : "查看全部 5 步"}
-                          {showRepairSubTasks ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
-                        </button>
-                      </div>
-                      {/* 接下来 AI 会自动 · 默认展示（降低员工焦虑） */}
+                      <p className="text-sm font-semibold leading-snug mb-2" style={{ color:"#1F2329" }}>维修工单：03栋大堂天花板渗水</p>
                       <div className="flex items-start gap-1.5 px-2.5 py-1.5 rounded-lg"
                         style={{ backgroundColor:"#F0F5FF", border:`1px dashed ${DD_BLUE}40` }}>
                         <Sparkles size={11} style={{ color:DD_BLUE }} className="shrink-0 mt-0.5" />
@@ -4236,52 +4221,11 @@ export default function App() {
                         </p>
                       </div>
                     </div>
-                    <button onClick={() => completeCard("mc-repair-leak")}
+                    <button onClick={e => { e.stopPropagation(); handleAIAssist(tasks.find(t=>t.id==="t2")!); }}
                       className="shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-medium text-white self-center"
-                      style={{ backgroundColor:DD_RED }}>去处理</button>
+                      style={{ backgroundColor:DD_RED }}>查看进度</button>
                   </div>
                 </div>
-                {showRepairSubTasks && (
-                  <div className="ml-3 mb-2 space-y-1.5" style={{ borderLeft:`2px solid ${DD_RED}30`, paddingLeft:10, animation:"slideDownFade 0.3s ease both" }}>
-                    {[
-                      { title:"查看库存 · 确认无电线类设备", status:"done", actor:"AI", time:"06-29 14:20" },
-                      { title:"申请设备请款 · 发起审批流程", status:"done", actor:"AI", time:"06-29 14:35" },
-                      { title:"申请完成 · 待财务审批通过", status:"done", actor:"AI", time:"06-29 16:42" },
-                      { title:"待采购入库", status:"doing", actor:"AI", time:"预计 06-30 上午" },
-                      { title:"任务可继续执行 · 派单维修", status:"todo", actor:"您", time:"待 ④ 完成后" },
-                    ].map((sub, i)=>{
-                      const isDone = sub.status === "done";
-                      const isDoing = sub.status === "doing";
-                      const dotColor = isDone ? DD_GREEN : isDoing ? DD_ORANGE : DD_GRAY;
-                      return (
-                        <div key={i} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white"
-                          style={{ border:`1px solid ${isDoing ? "#FFE7BA" : "#E8E9EB"}` }}>
-                          <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor:dotColor }} />
-                          <span className="text-xs flex-1 min-w-0 truncate" style={{ color: isDone || isDoing ? "#1F2329" : DD_GRAY }}>
-                            {sub.title}
-                          </span>
-                          {isDone && (
-                            <span className="text-[9px] font-medium px-1.5 py-0.5 rounded shrink-0"
-                              style={{ backgroundColor:"#F0F5FF", color:DD_BLUE }}>AI 已完成</span>
-                          )}
-                          {isDoing && (
-                            <span className="text-[9px] font-medium px-1.5 py-0.5 rounded animate-pulse shrink-0"
-                              style={{ backgroundColor:DD_ORANGE_LIGHT, color:DD_ORANGE }}>进行中</span>
-                          )}
-                          {sub.status === "todo" && (
-                            <span className="text-[9px] font-medium px-1.5 py-0.5 rounded shrink-0"
-                              style={{ backgroundColor:DD_GRAY_LIGHT, color:DD_GRAY }}>待办</span>
-                          )}
-                          <span className="text-[10px] shrink-0" style={{ color:DD_GRAY }}>{sub.time}</span>
-                        </div>
-                      );
-                    })}
-                    <p className="text-[10px] px-2 pt-1" style={{ color:DD_GRAY }}>
-                      💡 常规维修单无需拆解；此单 AI 自动识别需走采购+请款，链路已自动展开
-                    </p>
-                  </div>
-                )}
-                </>
                 )}
                 {/* 项目进场任务 - 动态出现 */}
                 {showProjectEntryCard && !completedCards.has("mc-project-entry") && (
