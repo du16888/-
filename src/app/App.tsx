@@ -1441,10 +1441,10 @@ function ChatPanel({ messages, input, setInput, sendMessage, linkedTask, clearLi
                     {/* 末尾的采纳按钮 */}
                     {msg.todoInteractive && !msg.todoAccepted && (
                       <div className="flex items-center gap-1.5 px-2.5 py-2" style={{ borderTop:"1px dashed #E8E9EB", backgroundColor:"#FFFBEB" }}>
-                        <span className="text-[11px] flex-1 font-medium" style={{ color:DD_ORANGE }}>是否采纳并开始进行？</span>
-                        <button onClick={() => acceptTodoList(msg.id, msg.todoList!)}
+                        <span className="text-[11px] flex-1 font-medium" style={{ color:DD_ORANGE }}>是否按计划开展？</span>
+                        <button onClick={() => { setRepairFlowPending(false); startRepairFlow(); }}
                           className="text-[10px] font-bold px-2 py-1 rounded text-white"
-                          style={{ backgroundColor:DD_GREEN }}>✓ 采纳</button>
+                          style={{ backgroundColor:DD_GREEN }}>✓ 按计划展开</button>
                         <button onClick={() => declineTodoList(msg.id)}
                           className="text-[10px] font-medium px-2 py-1 rounded"
                           style={{ backgroundColor:"#fff", color:DD_GRAY, border:"1px solid #E8E9EB" }}>暂不</button>
@@ -4124,8 +4124,8 @@ export default function App() {
     }, INTERVAL);
   };
 
-  // 用户采纳 todo 后，模拟 AI 逐项"再次"完成全过程（动画效果）
-  const acceptTodoList = (msgId: string, baseTodos: { label: string; status: "pending" | "running" | "done" }[]) => {
+  // 用户点击"按计划展开"按钮 → 触发维修流程 or 其他场景动画
+  const acceptTodoList = (msgId: string, _baseTodos?: { label: string; status: "pending" | "running" | "done" }[]) => {
     setMessages(prev => prev.map(m => m.id === msgId ? { ...m, todoAccepted: true, todoInteractive: false } : m));
     let i = 0;
     const tick = () => {
@@ -4257,7 +4257,7 @@ export default function App() {
         { label: "③ 请款采购 → 采购到货 → 派单给工程人员", status: "pending" as const },
       ];
       setRepairFlowPending(true);
-      setTimeout(() => streamMessage(bubble1Text, undefined, undefined, todoList, false), 400);
+      setTimeout(() => streamMessage(bubble1Text, undefined, undefined, todoList, true), 400);
     } else {
       setMessages(prev=>[...prev, { id:"tp"+Date.now(), role:"agent", content:"", time:"", typing:true }]);
       setTimeout(()=>{
