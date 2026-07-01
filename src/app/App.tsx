@@ -1442,10 +1442,19 @@ function ChatPanel({ messages, input, setInput, sendMessage, linkedTask, clearLi
                     {msg.todoInteractive && !msg.todoAccepted && (
                       <div className="flex items-center gap-1.5 px-2.5 py-2" style={{ borderTop:"1px dashed #E8E9EB", backgroundColor:"#FFFBEB" }}>
                         <span className="text-[11px] flex-1 font-medium" style={{ color:DD_ORANGE }}>是否按计划开展？</span>
-                        <button onClick={() => { console.log("[repair] Adopt clicked"); startRepairFlow(); }}
+                        <button onClick={() => {
+                          const now = new Date().toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit"});
+                          setMessages(prev => [...prev, { id:"u"+Date.now(), role:"user", content:"按计划开展", time:now }]);
+                          setRepairFlowPending(false);
+                          startRepairFlow();
+                        }}
                           className="text-[10px] font-bold px-2 py-1 rounded text-white"
                           style={{ backgroundColor:DD_GREEN }}>✓ 按计划展开</button>
-                        <button onClick={() => declineTodoList(msg.id)}
+                        <button onClick={() => {
+                          const now = new Date().toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit"});
+                          setMessages(prev => [...prev, { id:"u"+Date.now(), role:"user", content:"暂不", time:now }]);
+                          declineTodoList(msg.id);
+                        }}
                           className="text-[10px] font-medium px-2 py-1 rounded"
                           style={{ backgroundColor:"#fff", color:DD_GRAY, border:"1px solid #E8E9EB" }}>暂不</button>
                       </div>
