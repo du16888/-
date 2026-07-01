@@ -3895,6 +3895,7 @@ export default function App() {
   const [orchestratorTab, setOrchestratorTab] = useState<"library" | "suggestions" | "integrations">("library");
   const [selectedChain, setSelectedChain] = useState<string | null>(null);
   const [completedCards, setCompletedCards] = useState<Set<string>>(new Set());
+  const [repairFlowPending, setRepairFlowPending] = useState(false);
   const [messages, setMessages] = useState<Message[]>([{
     id:"m0", role:"agent", time:"09:00",
     content:"您好！我是**邻里全能AI助手**，覆盖公司全业务，可以：\n\n• 业务问答 — SOP查询、制度解读、表单指引\n• 系统操作 — 工单创建、合同录入、审批推送\n• 任务协同 — 联动任务助理，完成调度、提醒与编排\n\n今日事务已编排完毕，任务助理按紧急程度分组呈现。有任何问题直接问我！",
@@ -3934,6 +3935,16 @@ export default function App() {
     ]);
     setInput("");
     setTimeout(()=>{
+      // 检测：维修工单三方比价流程等待用户确认
+      if (repairFlowPending) {
+        const isYes = ["好的","好","可以","是的","确认","同意","开始","没问题","嗯","行","ok","OK","yes","去做","来吧","帮我","执行"].some(kw => content.includes(kw));
+        if (isYes) {
+          setMessages(prev => prev.filter(m => !m.typing));
+          startRepairFlow();
+          return;
+        }
+        setRepairFlowPending(false);
+      }
       const isAllTasks = ["全部任务","全部事务","任务列表","所有任务","查看全部"].some(kw => content.includes(kw));
       const isCollectionReport = ["回款","今日回款","每日回款","回款报表","回款内容","回款数据"].some(kw => content.includes(kw));
       if (isCollectionReport) {
@@ -4154,6 +4165,100 @@ export default function App() {
     setMessages(prev => prev.map(m => m.id === msgId ? { ...m, todoInteractive: false } : m));
   };
 
+  const startRepairFlow = () => {
+    setRepairFlowPending(false);
+    const now = () => new Date().toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit"});
+    const TODOS_1 = [
+      { label: "① 发起三方比价流程", status: "running" as const },
+      { label: "② 发起请款流程（需等三方比价流程走完）", status: "pending" as const },
+      { label: "③ 请款采购 → 采购到货 → 派单给工程人员", status: "pending" as const },
+    ];
+    const TODOS_2 = [
+      { label: "① 发起三方比价流程", status: "done" as const },
+      { label: "② 发起请款流程（需等三方比价流程走完）", status: "running" as const },
+      { label: "③ 请款采购 → 采购到货 → 派单给工程人员", status: "pending" as const },
+    ];
+    const TODOS_DONE = [
+      { label: "① 发起三方比价流程", status: "done" as const },
+      { label: "② 发起请款流程（需等三方比价流程走完）", status: "done" as const },
+      { label: "③ 请款采购 → 采购到货 → 派单给工程人员", status: "done" as const },
+    ];
+
+    // Bubble 2：发起三方比价流程
+    setTimeout(() => {
+      const b2Text = `📋 **正在发起三方比价流程...**\n\n━━ 动作节点 ━━\n✅ 生成比价单：03栋大堂渗水维修-电线类设备采购\n✅ 系统自动推送至 3 家备选供应商：\n   • 供应商A · 恒通电气（已合作 2 年）\n   • 供应商B · 明华电器（新供应商）\n   • 供应商C · 顺达工程（已合作 1 年）\n✅ 推送比价通知，要求 24 小时内报价\n\n━━ 流程卡片 ━━\n🗂 流程名称：电线类设备三方比价\n📅 发起时间：06-30 09:15\n🏷 流程编号：SRM-2026-0630-001\n👤 发起人：AI 助手（代理）\n📌 状态：**比价进行中** · 供应商报价中\n\n━━ 报价结果（09:45 更新）━━\n• 供应商A：¥ 1,180 · 含运费\n• 供应商B：¥ 1,320 · 不含运\n• 供应商C：¥ 1,250 · 含运费\n\n✅ AI 已自动选取最优报价：**供应商A · ¥1,180**\n\n✅ 三方比价流程已完成，结果已归档至 SRM 系统。`;
+      const b2Id = "rb2_" + Date.now();
+      setMessages(prev => [...prev, { id: b2Id, role: "agent", content: "", time: "", typing: false, todoList: TODOS_1 }]);
+      let idx = 0;
+      const CHUNK = 5, INTVL = 22;
+      const timer = setInterval(() => {
+        idx = Math.min(idx + CHUNK, b2Text.length);
+        setMessages(prev => prev.map(m => m.id === b2Id ? { ...m, content: b2Text.slice(0, idx), time: idx >= b2Text.length ? now() : "" } : m));
+        if (idx >= b2Text.length) {
+          clearInterval(timer);
+          // mark todo① done
+          setMessages(prev => prev.map(m => m.id === b2Id ? { ...m, todoList: [{ label: "① 发起三方比价流程", status: "done" as const }, TODOS_1[1], TODOS_1[2]] } : m));
+        }
+      }, INTVL);
+    }, 200);
+
+    // Bubble 3：发起请款流程
+    setTimeout(() => {
+      const b3Text = `🧾 **识别到三方比价流程已完成，正在发起请款流程...**\n\n━━ 动作节点 ━━\n✅ 关联三方比价单：SRM-2026-0630-001\n✅ 生成付款申请单：金额 ¥1,180（含运）\n✅ 自动匹配供应商合同：恒通电气-框架协议\n✅ 三单匹配（合同 / 比价结果 / 付款单）通过\n\n━━ 请款流程卡片 ━━\n🗂 流程名称：维修设备请款-恒通电气\n💰 请款金额：**¥ 1,180.00**\n📅 发起时间：06-30 09:52\n🏷 流程编号：PAY-2026-0630-088\n👤 发起人：AI 助手（代理）\n\n━━ 审批进行中 ━━\n✅ 第一层：项目经理审批 · 已通过（09:58）\n🟡 第二层：区域财务审批 · 审批中...`;
+      const b3Id = "rb3_" + Date.now();
+      setMessages(prev => [...prev, { id: b3Id, role: "agent", content: "", time: "", typing: false, todoList: TODOS_2 }]);
+      let idx = 0;
+      const CHUNK = 5, INTVL = 22;
+      const timer = setInterval(() => {
+        idx = Math.min(idx + CHUNK, b3Text.length);
+        setMessages(prev => prev.map(m => m.id === b3Id ? { ...m, content: b3Text.slice(0, idx), time: idx >= b3Text.length ? now() : "" } : m));
+        if (idx >= b3Text.length) clearInterval(timer);
+      }, INTVL);
+    }, 4000);
+
+    // Bubble 4：申请完成 · 待财务审批通过
+    setTimeout(() => {
+      const b4Id = "rb4_" + Date.now();
+      const b4Text = `✅ **申请完成 · 待财务审批通过**\n\n━━ 当前状态 ━━\n📋 流程编号：PAY-2026-0630-088\n💰 请款金额：¥ 1,180.00\n\n✅ 项目经理：已审批通过（06-30 09:58）\n🟡 区域财务：审批中（预计 1 个工作日内完成）\n\nAI 将持续跟踪，财务审批通过后自动推进采购下单流程，无需您手动操作。`;
+      setMessages(prev => [...prev, { id: b4Id, role: "agent", content: "", time: "", typing: false, todoList: TODOS_2 }]);
+      let idx = 0;
+      const CHUNK = 5, INTVL = 22;
+      const timer = setInterval(() => {
+        idx = Math.min(idx + CHUNK, b4Text.length);
+        setMessages(prev => prev.map(m => m.id === b4Id ? { ...m, content: b4Text.slice(0, idx), time: idx >= b4Text.length ? now() : "" } : m));
+        if (idx >= b4Text.length) clearInterval(timer);
+      }, INTVL);
+    }, 7000);
+
+    // Bubble 5：待采购入库
+    setTimeout(() => {
+      const b5Id = "rb5_" + Date.now();
+      const b5Text = `📦 **④ 待采购入库**\n\n━━ 采购动态 ━━\n✅ 财务审批已通过，¥1,180 已打款至恒通电气（06-30 14:30）\n✅ 供应商已确认接单，正在备货配送中\n📅 **预计 07-01 上午到货**\n\n到货后 AI 将自动完成：\n• 库存入库登记\n• AI 派单给张师傅（维修工程师）\n• 钉钉通知 1203 业主进度`;
+      setMessages(prev => [...prev, { id: b5Id, role: "agent", content: "", time: "", typing: false, todoList: TODOS_DONE }]);
+      let idx = 0;
+      const CHUNK = 5, INTVL = 22;
+      const timer = setInterval(() => {
+        idx = Math.min(idx + CHUNK, b5Text.length);
+        setMessages(prev => prev.map(m => m.id === b5Id ? { ...m, content: b5Text.slice(0, idx), time: idx >= b5Text.length ? now() : "" } : m));
+        if (idx >= b5Text.length) clearInterval(timer);
+      }, INTVL);
+    }, 10000);
+
+    // Bubble 6：进度总结
+    setTimeout(() => {
+      const b6Id = "rb6_" + Date.now();
+      const b6Text = `🎉 **维修工单进度总结**\n\n**工单**：03栋大堂天花板渗水 · 电线类设备采购\n\n━━ 全部进度 ━━\n✅ 现场拍照存档，工单已生成（06-29 13:10）\n✅ AI 查看库存 · 确认缺少电线类设备（06-29 14:20）\n✅ 三方比价流程完成 · 选定恒通电气 ¥1,180（06-30 09:45）\n✅ 请款流程发起，审批通过，已打款（06-30 14:30）\n✅ 供应商已确认，预计 07-01 上午到货\n🟡 采购到货后 AI 自动完成派单与业主通知\n\n**整个流程您无需手动介入，AI 全程跟踪执行。** 到货及派单完成后，我会再次通知您。`;
+      setMessages(prev => [...prev, { id: b6Id, role: "agent", content: "", time: "", typing: false }]);
+      let idx = 0;
+      const CHUNK = 5, INTVL = 22;
+      const timer = setInterval(() => {
+        idx = Math.min(idx + CHUNK, b6Text.length);
+        setMessages(prev => prev.map(m => m.id === b6Id ? { ...m, content: b6Text.slice(0, idx), time: idx >= b6Text.length ? now() : "" } : m));
+        if (idx >= b6Text.length) clearInterval(timer);
+      }, INTVL);
+    }, 13000);
+  };
+
   const handleAIAssist = (task: Task) => {
     setLinkedTask(task);
     setHistoryOpen(false);
@@ -4184,20 +4289,16 @@ export default function App() {
       ];
       setTimeout(() => streamMessage(fullText, actionable), 400);
     } else if (task.type === "维修工单") {
-      // 维修工单：user 消息只发任务名，不加"请帮我分析并处理任务："前缀
+      // 维修工单：user 消息只发任务名，不加前缀
       setMessages(prev => prev.map(m => m.id === userMsgId ? { ...m, content: `「${task.title}」` } : m));
-      const fullText = `🔧 我已识别到您点击的工单问题：\n\n${task.desc || "03栋大堂天花板发现渗水迹象，需现场排查并修复。"}\n\n━━━━ 当前进度 ━━━━\n✅ AI 已完成：\n① 查看库存 · 确认无电线类设备（06-29 14:20）\n② 申请设备请款 · 发起审批流程（06-29 14:35）\n③ 申请完成 · 待财务审批通过（06-29 16:42）\n\n🟠 当前在执行：④ 待采购入库\n   供应商已确认，预计 06-30 上午到货。\n\n━━━━ 接下来需要您介入的事项 ━━━━\n\n1️⃣ 您需要先发起【三方比价流程】\n   目的：让采购合规（避免单一供应商风险）\n   ⏱ 预计耗时：1 个工作日\n   ⚠️ 这是请款的前置条件，必须先完成\n\n2️⃣ 三方比价完成后，再发起【请款流程】\n   目的：财务审批通过后才能打款采购\n   ⏱ 预计耗时：1-2 个工作日\n   🔗 依赖：必须等 1️⃣ 走完才能启动\n\n3️⃣ 请款审批通过 → 财务打款 → 采购到货\n   ⏱ 预计耗时：3-5 个工作日\n\n4️⃣ 设备到货后 → AI 自动派单给张师傅\n   派单后 → 工程人员接单 → 上门维修 → 结单\n\n5️⃣ 完工后 → AI 自动钉钉通知 1203 业主\n\n━━━━ AI 会在 3️⃣ 之后接管 ━━━━\n您只需关注 1️⃣ 三方比价 + 2️⃣ 请款流程 这两步。\n其他步骤 AI 已能自动跑完。`;
+      const bubble1Text = `🔧 检测到维修工单：**03栋大堂天花板渗水**\n\n${task.desc || "03栋大堂天花板发现渗水迹象，已拍照存档并生成维修工单，AI 识别需采购电线等设备。"}\n\n━━ 当前已完成进度 ━━\n✅ 现场拍照存档，工单已生成（06-29 13:10）\n✅ AI 查看库存 · 确认缺少电线类设备（06-29 14:20）\n\n━━ 接下来的计划 ━━\n\n是否按这个计划进行开展？如果是的话我会自动帮你发起三方比价流程，然后发起请款流程，过程不需要你手动发起，你可以随时查看进度。`;
       const todoList = [
-        { label: "① 三方比价流程 · 让采购合规", status: "pending" as const },
-        { label: "② 请款流程 · 财务审批通过", status: "pending" as const },
-        { label: "③ 采购到货 · 3-5 个工作日", status: "pending" as const },
-        { label: "④ AI 派单给张师傅 · 自动接单", status: "pending" as const },
-        { label: "⑤ 钉钉通知 1203 业主 · 完工反馈", status: "pending" as const },
+        { label: "① 发起三方比价流程", status: "pending" as const },
+        { label: "② 发起请款流程（需等三方比价流程走完）", status: "pending" as const },
+        { label: "③ 请款采购 → 采购到货 → 派单给工程人员", status: "pending" as const },
       ];
-      const actionable = [
-        { label: "🔍 查看完整动作链", prompt: "查看这个维修工单的完整动作链" },
-      ];
-      setTimeout(() => streamMessage(fullText, actionable, undefined, todoList, true), 400);
+      setRepairFlowPending(true);
+      setTimeout(() => streamMessage(bubble1Text, undefined, undefined, todoList, false), 400);
     } else {
       setMessages(prev=>[...prev, { id:"tp"+Date.now(), role:"agent", content:"", time:"", typing:true }]);
       setTimeout(()=>{
