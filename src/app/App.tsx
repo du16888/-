@@ -4972,19 +4972,21 @@ export default function App() {
 const ORCH_CHAINS = [
   { id:"c1", title:"业主报修链路", trigger:"💬 钉钉群 · msg.contains(\"报修\") && channel=='业主群'", systems:["💬 钉钉","📋 工单","💰 SRM","🛒 SRM比价"], status:"enabled", runs:47, success:"98%", icon:"🔧", color:DD_BLUE,
     nodes:[
-      { label:"识别报修意图", system:"钉钉", icon:"💬", branch:"main" },
-      { label:"建工单", system:"工单系统", icon:"📋", branch:"main" },
-      { label:"查库存 · 识别设备需求", system:"工单系统", icon:"📦", branch:"ai_added", condition:"建工单后 AI 自动触发" },
-      { label:"三方比价", system:"SRM", icon:"🛒", branch:"ai_added", condition:"缺料时自动激活" },
-      { label:"请款流程", system:"SRM", icon:"💰", branch:"ai_added", condition:"比价完成后" },
-      { label:"采购到货", system:"SRM", icon:"📦", branch:"ai_added", condition:"请款审批通过" },
-      { label:"AI 派单", system:"工单系统", icon:"🤖", branch:"main" },
-      { label:"工单处理 · 接单/结单", system:"工单系统", icon:"🔧", branch:"main" },
-      { label:"通知住户", system:"钉钉", icon:"📲", branch:"main" },
+      { type:"step", label:"识别报修意图", system:"钉钉", icon:"💬", branch:"main" },
+      { type:"step", label:"建工单", system:"工单系统", icon:"📋", branch:"main" },
+      { type:"decision", label:"是否需要采购设备？", icon:"🔶", condition:"AI 自动判断维修过程中是否缺料" },
+      { type:"step", label:"查库存", system:"工单系统", icon:"📦", branch:"ai_added" },
+      { type:"step", label:"三方比价", system:"SRM", icon:"🛒", branch:"ai_added" },
+      { type:"step", label:"请款流程", system:"SRM", icon:"💰", branch:"ai_added" },
+      { type:"step", label:"采购到货", system:"SRM", icon:"📦", branch:"ai_added" },
+      { type:"step", label:"AI 派单", system:"工单系统", icon:"🤖", branch:"main" },
+      { type:"step", label:"工单处理 · 接单/结单", system:"工单系统", icon:"🔧", branch:"main" },
+      { type:"step", label:"通知住户", system:"钉钉", icon:"📲", branch:"main" },
     ],
     hasAiBranch: true,
-    branchCondition: "维修过程中识别到需采购设备时",
+    branchCondition: "AI 判断：是否需要采购设备？",
     branchHits: 4,
+    decisionHits: { yes: 4, no: 43 },
   },
   { id:"c2", title:"合同到期预警链路", trigger:"📄 SRM · 合同到期前 30 天 && type=='服务合同'", systems:["📄 SRM","💬 钉钉","⚖ 法务"], status:"enabled", runs:5, success:"100%", icon:"📄", color:"#722ED1",
     nodes:[ {label:"识别到期",system:"SRM",icon:"📄"}, {label:"起草续签",system:"法务",icon:"⚖"}, {label:"发起审批",system:"钉钉",icon:"📋"}, {label:"归档",system:"SRM",icon:"🗂"} ] },
@@ -5177,6 +5179,26 @@ function ChainDetail({ chain, onBack }:{ chain:typeof ORCH_CHAINS[0]; onBack:()=
 }
 
 function NodeCard({ n, color, isAiAdded }:{ n:any; color:string; isAiAdded?:boolean }) {
+  if (n.type === "decision") {
+    // 菱形判断节点：橙色虚线菱形 + ⚠️ 角标
+    return (
+      <div className="relative flex flex-col items-center justify-center text-center" style={{ minWidth: 120, minHeight: 78 }}>
+        <div className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px] font-bold shadow-sm"
+          style={{ backgroundColor:DD_ORANGE }}>⚠</div>
+        <div className="w-[110px] h-[58px] flex items-center justify-center text-xs font-bold px-2"
+          style={{
+            backgroundColor:"#FFF7E6",
+            border:`1.5px dashed ${DD_ORANGE}`,
+            transform: "rotate(0deg)",
+            clipPath: "polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%)",
+            color:DD_ORANGE,
+          }}>
+          {n.icon} {n.label}
+        </div>
+        {n.condition && <div className="text-[9px] mt-1.5 px-1" style={{ color:DD_GRAY }}>{n.condition}</div>}
+      </div>
+    );
+  }
   return (
     <div className="relative rounded-xl px-3 py-2.5 text-center" style={{
       backgroundColor: isAiAdded ? "#F9F0FF" : `${color}10`,
@@ -5221,23 +5243,74 @@ function LinearChainView({ chain }:{ chain:any }) {
 }
 
 function BranchChainView({ chain }:{ chain:any }) {
-  // 一条连续链路：主线节点用链路色，AI 临时加的节点用紫色 + ⚡
-  const allNodes = chain.nodes;
-  const mainCount = allNodes.filter((n:any) => n.branch === "main").length;
-  const aiCount = allNodes.filter((n:any) => n.branch === "ai_added").length;
+  const allNodes:any[] = chain.nodes;
+  // 找到决策点
+  const decisionIdx = allNodes.findIndex((n:any) => n.type === "decision");
+  // 找到 AI 加的节点
+  const aiNodes = allNodes.filter((n:any) => n.branch === "ai_added");
+  const aiCount = aiNodes.length;
+  const mainCount = allNodes.filter((n:any) => n.branch === "main" || n.type === "decision").length;
+  // 主线 = 决策点前 + 决策点后
+  const beforeDecision = decisionIdx >= 0 ? allNodes.slice(0, decisionIdx) : allNodes;
+  const decisionNode = decisionIdx >= 0 ? allNodes[decisionIdx] : null;
+  // AI 派单是 AI 加的节点的"汇回"目标
+  const afterDecision = decisionIdx >= 0 ? allNodes.slice(decisionIdx + 1) : [];
+
+  // 构造带决策占位的"主线条"：决策点位置用占位
+  const mainFlow:any[] = [...beforeDecision];
+  if (decisionNode) mainFlow.push({ ...decisionNode, _isDecision: true });
+  mainFlow.push(...afterDecision);
+
   return (
     <div>
-      {/* 单行连续链路 */}
-      <div className="flex items-center gap-1 overflow-x-auto pb-2">
-        {allNodes.map((n:any, i:number) => {
-          const isAi = n.branch === "ai_added";
-          return (
-            <div key={i} className="flex items-center gap-1 shrink-0">
-              <NodeCard n={n} color={chain.color} isAiAdded={isAi} />
-              {i < allNodes.length - 1 && <Arrow id={`${chain.id}-${i}`} color={isAi ? "#722ED1" : chain.color} />}
-            </div>
-          );
-        })}
+      {/* 主线条 + 紫色支线下沉 */}
+      <div className="relative">
+        {/* 主线条 */}
+        <div className="flex items-center gap-1 overflow-x-auto pb-2">
+          {mainFlow.map((n:any, i:number) => {
+            const isAi = n.branch === "ai_added";
+            const isDec = n.type === "decision";
+            const next = mainFlow[i + 1];
+            const nextIsAi = next?.branch === "ai_added";
+            return (
+              <div key={i} className="flex items-center gap-1 shrink-0">
+                <NodeCard n={n} color={chain.color} isAiAdded={isAi} />
+                {next && (
+                  isDec
+                    ? <DecisionBranchArrow id={`${chain.id}-dec-${i}`} color={chain.color} />
+                    : <Arrow id={`${chain.id}-${i}`} color={isAi || nextIsAi ? "#722ED1" : chain.color} />
+                )}
+              </div>
+            );
+          })}
+        </div>
+        {/* 紫色支线（下沉到第二行 · 水平排列 · 终点向上汇回"AI 派单"） */}
+        {aiNodes.length > 0 && (
+          <div className="ml-[260px] mt-2 pl-2 flex items-center gap-1 overflow-x-auto pb-2 relative"
+            style={{ borderTop: `1.5px dashed #722ED1` }}>
+            <span className="absolute -top-2.5 left-2 text-[9px] font-bold px-1.5 py-0.5 rounded text-white" style={{ backgroundColor:"#722ED1" }}>
+              ⚡ AI 分支（判断=是）
+            </span>
+            {aiNodes.map((n:any, i:number) => {
+              const isLast = i === aiNodes.length - 1;
+              return (
+                <div key={i} className="flex items-center gap-1 shrink-0">
+                  <NodeCard n={n} color={chain.color} isAiAdded />
+                  {isLast ? (
+                    <div className="flex flex-col items-center shrink-0 px-1">
+                      <span className="text-[10px] font-bold flex items-center gap-0.5" style={{ color:"#722ED1" }}>
+                        ↗ 汇回主线
+                      </span>
+                      <span className="text-[9px] whitespace-nowrap" style={{ color:"#722ED1" }}>到「AI 派单」</span>
+                    </div>
+                  ) : (
+                    <Arrow id={`${chain.id}-ai-${i}`} color="#722ED1" />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
       {/* 图例 + 触发条件说明 */}
       <div className="flex items-center gap-3 mt-2 px-2 py-1.5 rounded-lg flex-wrap" style={{ backgroundColor:"#F8F9FB", border:"1px solid #E8E9EB" }}>
@@ -5251,15 +5324,43 @@ function BranchChainView({ chain }:{ chain:any }) {
           <span className="text-[10px]" style={{ color:"#722ED1" }}>AI 临时加入 · 智能</span>
           <span className="text-[10px] font-bold ml-1" style={{ color:"#722ED1" }}>{aiCount}</span>
         </div>
+        <div className="flex items-center gap-1">
+          <div className="w-2 h-2 rotate-45" style={{ backgroundColor:"#FFF7E6", border:`1px dashed ${DD_ORANGE}` }} />
+          <span className="text-[10px]" style={{ color:DD_ORANGE }}>判断节点</span>
+        </div>
         <div className="ml-auto text-[10px] flex items-center gap-1" style={{ color:"#722ED1" }}>
           <Sparkles size={10} />
-          触发条件：{chain.branchCondition}
+          {chain.branchCondition}
         </div>
       </div>
       <p className="text-[10px] mt-2" style={{ color:"#722ED1" }}>
-        💡 链路原本只有 {mainCount} 步；本月有 <b>{chain.branchHits}</b> 次因识别到设备采购，AI 临时激活了 {aiCount} 个节点
+        💡 本月共触发 <b>{chain.branchHits + (chain.decisionHits?.no || 0)}</b> 次；
+        其中 <b style={{ color:DD_ORANGE }}>{chain.decisionHits?.yes || chain.branchHits}</b> 次判断"是"走 AI 分支，
+        <b style={{ color: chain.color }}>{chain.decisionHits?.no || 0}</b> 次判断"否"直接走 AI 派单。
       </p>
     </div>
+  );
+}
+
+// 决策后的分叉箭头（"是"往下走 / "否"继续走主线条）
+function DecisionBranchArrow({ id, color }:{ id:string; color:string }) {
+  return (
+    <svg width="40" height="48" className="shrink-0">
+      <defs>
+        <marker id={`arrow-${id}-down`} markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+          <path d="M0,0 L6,3 L0,6 z" fill="#722ED1" />
+        </marker>
+        <marker id={`arrow-${id}`} markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+          <path d="M0,0 L6,3 L0,6 z" fill={color} />
+        </marker>
+      </defs>
+      {/* "否"继续主线条（右上） */}
+      <text x="14" y="6" fontSize="8" fill={color} fontWeight="bold">否</text>
+      <path d="M 20 12 Q 30 6 36 12" stroke={color} strokeWidth="1.5" fill="none" markerEnd={`url(#arrow-${id})`} strokeDasharray="3,2" />
+      {/* "是"往下走到支线 */}
+      <text x="14" y="44" fontSize="8" fill="#722ED1" fontWeight="bold">是</text>
+      <path d="M 20 24 L 20 38 L 36 38" stroke="#722ED1" strokeWidth="1.5" fill="none" markerEnd={`url(#arrow-${id}-down)`} strokeDasharray="3,2" />
+    </svg>
   );
 }
 
