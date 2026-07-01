@@ -3864,7 +3864,7 @@ export default function App() {
 
   const completeCard = (id: string) => { setCompletedCards(prev => new Set([...prev, id])); setDetailTask(null); };
 
-  const urgentVisible = ["mc-repair-leak", ...(showProjectEntryCard ? ["mc-project-entry"] : []), "mc-bpm-decoration", "mc-t1", ...(srmEscalated ? ["mc-srm-approval"] : [])].filter(id => !completedCards.has(id));
+  const urgentVisible = [...(showProjectEntryCard ? ["mc-project-entry"] : []), "mc-repair-leak", "mc-bpm-decoration", "mc-t1", ...(srmEscalated ? ["mc-srm-approval"] : [])].filter(id => !completedCards.has(id));
   const todayVisible  = ["mc-inspection", ...(srmEscalated ? [] : ["mc-srm-approval"])].filter(id => !completedCards.has(id));
   const followVisible = ["mc-announcement", "mc-t6", "mc-q2-approval"].filter(id => !completedCards.has(id));
   const totalVisible  = urgentVisible.length + todayVisible.length + followVisible.length;
@@ -4200,33 +4200,6 @@ export default function App() {
                   <span className="text-[11px] font-bold px-2 py-0.5 rounded-full text-white" style={{ backgroundColor:DD_RED }}>立即处理</span>
                   <span className="text-[10px]" style={{ color:DD_GRAY }}>{urgentVisible.length}件 · 今日截止或超期</span>
                 </div>
-                {/* 维修工单 · 卡片瘦身版 · 点开弹 AI 助理看 5 步拆解 */}
-                {!completedCards.has("mc-repair-leak") && (
-                <div onClick={() => { handleAIAssist(tasks.find(t=>t.id==="t2")!); }}
-                  className="bg-white rounded-xl p-3 mb-2 shadow-sm cursor-pointer"
-                  style={{ border:"1px solid #FFD6D6", borderLeft:`3px solid ${DD_RED}` }}>
-                  <div className="flex items-start gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-1.5 mb-1.5">
-                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded" style={{ backgroundColor:DD_RED_LIGHT, color:DD_RED }}>维修工单</span>
-                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded" style={{ backgroundColor:"#F0F5FF", color:DD_BLUE }}>⚙ AI 拆解 5 步</span>
-                        <span className="text-[10px] font-medium" style={{ color:DD_RED }}>今日截止</span>
-                      </div>
-                      <p className="text-sm font-semibold leading-snug mb-2" style={{ color:"#1F2329" }}>维修工单：03栋大堂天花板渗水</p>
-                      <div className="flex items-start gap-1.5 px-2.5 py-1.5 rounded-lg"
-                        style={{ backgroundColor:"#F0F5FF", border:`1px dashed ${DD_BLUE}40` }}>
-                        <Sparkles size={11} style={{ color:DD_BLUE }} className="shrink-0 mt-0.5" />
-                        <p className="text-[10.5px] leading-relaxed flex-1" style={{ color:"#1F2329" }}>
-                          <b style={{ color:DD_BLUE }}>接下来 AI 会自动</b>：⑤ 设备到货后立即派单给张师傅 → ⑥ 完工后钉钉通知 1203 业主。无需您介入。
-                        </p>
-                      </div>
-                    </div>
-                    <button onClick={e => { e.stopPropagation(); handleAIAssist(tasks.find(t=>t.id==="t2")!); }}
-                      className="shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-medium text-white self-center"
-                      style={{ backgroundColor:DD_RED }}>查看进度</button>
-                  </div>
-                </div>
-                )}
                 {/* 项目进场任务 - 动态出现 */}
                 {showProjectEntryCard && !completedCards.has("mc-project-entry") && (
                 <>
@@ -4265,6 +4238,33 @@ export default function App() {
                   </div>
                 )}
                 </>
+                )}
+                {/* 维修工单 · 卡片瘦身版 · 点开弹 AI 助理看 5 步拆解 */}
+                {!completedCards.has("mc-repair-leak") && (
+                <div onClick={() => { handleAIAssist(tasks.find(t=>t.id==="t2")!); }}
+                  className="bg-white rounded-xl p-3 mb-2 shadow-sm cursor-pointer"
+                  style={{ border:"1px solid #FFD6D6", borderLeft:`3px solid ${DD_RED}` }}>
+                  <div className="flex items-start gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 mb-1.5">
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded" style={{ backgroundColor:DD_RED_LIGHT, color:DD_RED }}>维修工单</span>
+                        <span className="text-[10px] font-medium px-1.5 py-0.5 rounded" style={{ backgroundColor:"#F0F5FF", color:DD_BLUE }}>⚙ AI 拆解 5 步</span>
+                        <span className="text-[10px] font-medium" style={{ color:DD_RED }}>今日截止</span>
+                      </div>
+                      <p className="text-sm font-semibold leading-snug mb-2" style={{ color:"#1F2329" }}>维修工单：03栋大堂天花板渗水</p>
+                      <div className="flex items-start gap-1.5 px-2.5 py-1.5 rounded-lg"
+                        style={{ backgroundColor:"#F0F5FF", border:`1px dashed ${DD_BLUE}40` }}>
+                        <Sparkles size={11} style={{ color:DD_BLUE }} className="shrink-0 mt-0.5" />
+                        <p className="text-[10.5px] leading-relaxed flex-1" style={{ color:"#1F2329" }}>
+                          <b style={{ color:DD_BLUE }}>接下来 AI 会自动</b>：⑤ 设备到货后立即派单给张师傅 → ⑥ 完工后钉钉通知 1203 业主。无需您介入。
+                        </p>
+                      </div>
+                    </div>
+                    <button onClick={e => { e.stopPropagation(); handleAIAssist(tasks.find(t=>t.id==="t2")!); }}
+                      className="shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-medium text-white self-center"
+                      style={{ backgroundColor:DD_RED }}>查看进度</button>
+                  </div>
+                </div>
                 )}
                 {/* 企微未读消息 */}
                 {!completedCards.has("mc-wecom-unread") && (
