@@ -4095,13 +4095,17 @@ export default function App() {
     let idx = 0;
     const CHUNK = 4;
     const INTERVAL = 28;
-    // 文字流式推进过程中，todo 列表的 running 跟随"已读字"位置切换：每 20% 文字推进一个 todo
-    const todoUpdatePoints = todoList ? todoList.map((_, i) => Math.floor(fullText.length * (i + 1) / (todoList.length + 1))) : [];
+    // 只有在 todoList 中至少有一个项不为 pending 时（说明调用方明确希望推进状态），
+    // 才在文字流式过程中自动切换 running/done。否则（如气泡 1 "全 pending" 场景）保持原样。
+    const hasNonPending = todoList?.some(t => t.status !== "pending");
+    const todoUpdatePoints = todoList && hasNonPending
+      ? todoList.map((_, i) => Math.floor(fullText.length * (i + 1) / (todoList.length + 1)))
+      : [];
     const timer = setInterval(() => {
       idx = Math.min(idx + CHUNK, fullText.length);
       const partial = fullText.slice(0, idx);
       let nextTodos = todoList;
-      if (todoList && todoUpdatePoints.length) {
+      if (todoList && hasNonPending && todoUpdatePoints.length) {
         nextTodos = todoList.map((t, i) => {
           if (t.status === "done") return t;
           if (idx >= todoUpdatePoints[i]) return { ...t, status: i === todoUpdatePoints.length - 1 && idx < fullText.length ? "running" : "done" };
@@ -4114,10 +4118,6 @@ export default function App() {
         clearInterval(timer);
         if (actionable) {
           setMessages(prev => prev.map(m => m.id === msgId ? { ...m, actionable } : m));
-        }
-        // 全部完成：todo 全部标 done
-        if (todoList) {
-          setMessages(prev => prev.map(m => m.id === msgId ? { ...m, todoList: todoList.map(t => ({ ...t, status: "done" as const })) } : m));
         }
         onDone?.();
       }
