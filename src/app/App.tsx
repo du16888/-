@@ -4244,36 +4244,35 @@ export default function App() {
                 {showRepairSubTasks && (
                   <div className="ml-3 mb-2 space-y-1.5" style={{ borderLeft:`2px solid ${DD_RED}30`, paddingLeft:10, animation:"slideDownFade 0.3s ease both" }}>
                     {[
-                      { idx:"①", title:"查看库存 · 确认无电线类设备", status:"done", time:"06-29 14:20 完成" },
-                      { idx:"②", title:"申请设备请款 · 发起审批流程", status:"done", time:"06-29 14:35 完成" },
-                      { idx:"③", title:"申请完成 · 待财务审批通过", status:"done", time:"06-29 16:42 完成" },
-                      { idx:"④", title:"待采购入库", status:"doing", time:"采购中 · 预计 06-30 上午到货" },
-                      { idx:"⑤", title:"任务可继续执行 · 派单维修", status:"todo", time:"待 ④ 完成后自动触发" },
-                    ].map(sub=>{
+                      { title:"查看库存 · 确认无电线类设备", status:"done", actor:"AI", time:"06-29 14:20" },
+                      { title:"申请设备请款 · 发起审批流程", status:"done", actor:"AI", time:"06-29 14:35" },
+                      { title:"申请完成 · 待财务审批通过", status:"done", actor:"AI", time:"06-29 16:42" },
+                      { title:"待采购入库", status:"doing", actor:"AI", time:"预计 06-30 上午" },
+                      { title:"任务可继续执行 · 派单维修", status:"todo", actor:"您", time:"待 ④ 完成后" },
+                    ].map((sub, i)=>{
                       const isDone = sub.status === "done";
                       const isDoing = sub.status === "doing";
                       const dotColor = isDone ? DD_GREEN : isDoing ? DD_ORANGE : DD_GRAY;
                       return (
-                        <div key={sub.idx} className="flex items-start gap-2 px-3 py-2 rounded-lg bg-white"
+                        <div key={i} className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white"
                           style={{ border:`1px solid ${isDoing ? "#FFE7BA" : "#E8E9EB"}` }}>
-                          <span className="text-[11px] font-bold shrink-0 mt-0.5" style={{ color:dotColor, width:14 }}>{sub.idx}</span>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1.5">
-                              {isDone && <CheckCircle2 size={11} style={{ color:DD_GREEN }} className="shrink-0" />}
-                              <span className="text-xs" style={{ color: isDone ? DD_GRAY : "#1F2329", textDecoration: isDone ? "line-through" : "none" }}>
-                                {sub.title}
-                              </span>
-                              {isDoing && (
-                                <span className="text-[10px] font-medium px-1.5 py-0.5 rounded animate-pulse shrink-0"
-                                  style={{ backgroundColor:DD_ORANGE_LIGHT, color:DD_ORANGE }}>进行中</span>
-                              )}
-                              {sub.status === "todo" && (
-                                <span className="text-[10px] font-medium px-1.5 py-0.5 rounded shrink-0"
-                                  style={{ backgroundColor:DD_GRAY_LIGHT, color:DD_GRAY }}>待办</span>
-                              )}
-                            </div>
-                            <p className="text-[10px] mt-0.5" style={{ color:DD_GRAY }}>{sub.time}</p>
-                          </div>
+                          <div className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor:dotColor }} />
+                          <span className="text-xs flex-1 min-w-0 truncate" style={{ color: isDone || isDoing ? "#1F2329" : DD_GRAY }}>
+                            {sub.title}
+                          </span>
+                          {isDone && (
+                            <span className="text-[9px] font-medium px-1.5 py-0.5 rounded shrink-0"
+                              style={{ backgroundColor:"#F0F5FF", color:DD_BLUE }}>AI 已完成</span>
+                          )}
+                          {isDoing && (
+                            <span className="text-[9px] font-medium px-1.5 py-0.5 rounded animate-pulse shrink-0"
+                              style={{ backgroundColor:DD_ORANGE_LIGHT, color:DD_ORANGE }}>进行中</span>
+                          )}
+                          {sub.status === "todo" && (
+                            <span className="text-[9px] font-medium px-1.5 py-0.5 rounded shrink-0"
+                              style={{ backgroundColor:DD_GRAY_LIGHT, color:DD_GRAY }}>待办</span>
+                          )}
+                          <span className="text-[10px] shrink-0" style={{ color:DD_GRAY }}>{sub.time}</span>
                         </div>
                       );
                     })}
