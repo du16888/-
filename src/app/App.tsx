@@ -3896,7 +3896,6 @@ export default function App() {
   const [selectedChain, setSelectedChain] = useState<string | null>(null);
   const [completedCards, setCompletedCards] = useState<Set<string>>(new Set());
   const [repairFlowPending, setRepairFlowPending] = useState(false);
-  const [repairStepIndex, setRepairStepIndex] = useState(0);
   const [messages, setMessages] = useState<Message[]>([{
     id:"m0", role:"agent", time:"09:00",
     content:"您好！我是**邻里全能AI助手**，覆盖公司全业务，可以：\n\n• 业务问答 — SOP查询、制度解读、表单指引\n• 系统操作 — 工单创建、合同录入、审批推送\n• 任务协同 — 联动任务助理，完成调度、提醒与编排\n\n今日事务已编排完毕，任务助理按紧急程度分组呈现。有任何问题直接问我！",
@@ -3936,25 +3935,14 @@ export default function App() {
     ]);
     setInput("");
     setTimeout(()=>{
-      const isYes = (txt: string) => ["好的","好","可以","是的","确认","同意","开始","没问题","嗯","行","ok","OK","yes","去做","来吧","帮我","执行","继续","下一步"].some(kw => txt.includes(kw));
-
-      // 维修工单流程：用户在某个步骤后回复"好的/继续"，推进到下一步
-      if (repairFlowPending && repairStepIndex > 0 && isYes(content)) {
-        setMessages(prev => prev.filter(m => !m.typing));
-        const nextStep = repairStepIndex + 1;
-        setRepairStepIndex(nextStep);
-        continueRepairFlow(nextStep);
-        return;
-      }
-      if (repairFlowPending && repairStepIndex === 0 && isYes(content)) {
-        // 第一步"是否按计划开展"
-        setMessages(prev => prev.filter(m => !m.typing));
-        setRepairFlowPending(false);
-        startRepairFlow();
-        return;
-      }
-      // 中断正在进行的维修流程，标记为不再等待
+      // 维修工单流程：仅气泡 1 追问用户；用户回"好的"后开始自动分段流式
       if (repairFlowPending) {
+        const isYes = ["好的","好","可以","是的","确认","同意","开始","没问题","嗯","行","ok","OK","yes","去做","来吧","帮我","执行","继续","下一步"].some(kw => content.includes(kw));
+        if (isYes) {
+          setMessages(prev => prev.filter(m => !m.typing));
+          startRepairFlow();
+          return;
+        }
         setRepairFlowPending(false);
       }
 
@@ -4179,7 +4167,18 @@ export default function App() {
   };
 
   const startRepairFlow = () => {
-    setRepairStepIndex(1);
+    setRepairFlowPending(false);
+    const tNow = () => new Date().toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit"});
+    const push = (content: string, todoList?: typeof TODOS_B2) => {
+      setMessages(prev => [...prev, {
+        id: "rb_" + Math.random().toString(36).slice(2, 9),
+        role: "agent",
+        content,
+        time: tNow(),
+        todoList,
+      }]);
+    };
+
     const TODOS_B2 = [
       { label: "① 发起三方比价流程", status: "running" as const },
       { label: "② 发起请款流程（需等三方比价流程走完）", status: "pending" as const },
@@ -4196,119 +4195,26 @@ export default function App() {
       { label: "③ 请款采购 → 采购到货 → 派单给工程人员", status: "done" as const },
     ];
 
-    // Step 1：先冒一行简短确认，表示开始（不流式整段，避免看着像一条消息）
-    setTimeout(() => {
-      setMessages(prev => [...prev, {
-        id: "rb1_" + Date.now(),
-        role: "agent",
-        content: "好的，开始处理。",
-        time: new Date().toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit"}),
-      }]);
-    }, 300);
-
-    // Step 2：第一段说明（模仿 Claude：先讲一行结论 + 一行动作）
-    setTimeout(() => {
-      setMessages(prev => [...prev, {
-        id: "rb1b_" + Date.now(),
-        role: "agent",
-        content: "我先**发起三方比价流程** —— 比价需要 3 家供应商报价。",
-        time: new Date().toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit"}),
-        todoList: TODOS_B2,
-      }]);
-    }, 900);
-
-    // Step 3：流式打出供应商详情
-    setTimeout(() => {
-      const details = `\n📦 已推送至 3 家备选供应商：\n• 供应商A · 恒通电气（已合作 2 年）\n• 供应商B · 明华电器（新供应商）\n• 供应商C · 顺达工程（已合作 1 年）\n\n🏷 流程单号：SRM-2026-0630-001\n⏱ 报价截止：24 小时内`;
-      const bId = "rb2_" + Date.now();
-      streamMessage(details, undefined, undefined, TODOS_B2, false);
-      // 报价完成后的"结果"段
-      setTimeout(() => {
-        setMessages(prev => [...prev, {
-          id: "rb2b_" + Date.now(),
-          role: "agent",
-          content: `📊 **比价结果出炉**：\n\n• 供应商A：¥1,180 · 含运费\n• 供应商B：¥1,320 · 不含运\n• 供应商C：¥1,250 · 含运费\n\n✅ AI 已自动选取最优：**供应商A · ¥1,180**`,
-          time: new Date().toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit"}),
-          todoList: TODOS_B2.map(t => t.label.startsWith("①") ? { ...t, status: "done" as const } : t),
-        }]);
-      }, 2000);
-    }, 1700);
-  };
-
-  const continueRepairFlow = (stepIndex: number) => {
-    const TODOS_B3 = [
-      { label: "① 发起三方比价流程", status: "done" as const },
-      { label: "② 发起请款流程（需等三方比价流程走完）", status: "running" as const },
-      { label: "③ 请款采购 → 采购到货 → 派单给工程人员", status: "pending" as const },
-    ];
-    const TODOS_DONE = [
-      { label: "① 发起三方比价流程", status: "done" as const },
-      { label: "② 发起请款流程（需等三方比价流程走完）", status: "done" as const },
-      { label: "③ 请款采购 → 采购到货 → 派单给工程人员", status: "done" as const },
+    // 用户回"好的"之后，AI 自动按顺序推出多个短气泡（每条 1~3 句，间隔 1s）
+    const segs: Array<[string, typeof TODOS_B2 | undefined]> = [
+      ["好的，开始处理。", undefined],
+      ["我先**发起三方比价流程** —— 需要 3 家供应商报价。", TODOS_B2],
+      ["📦 已推送至 3 家备选供应商：\n• 供应商A · 恒通电气（已合作 2 年）\n• 供应商B · 明华电器（新供应商）\n• 供应商C · 顺达工程（已合作 1 年）", TODOS_B2],
+      ["🏷 流程单号：SRM-2026-0630-001\n⏱ 报价截止：24 小时内", TODOS_B2],
+      ["📊 比价结果出炉：\n\n• 供应商A：¥1,180 · 含运费\n• 供应商B：¥1,320 · 不含运\n• 供应商C：¥1,250 · 含运费\n\n✅ AI 已自动选取最优：**供应商A · ¥1,180**", [{ label: "① 发起三方比价流程", status: "done" as const }, TODOS_B2[1], TODOS_B2[2]]],
+      ["三方比价已完成。", undefined],
+      ["现在**发起请款流程** —— 需要财务审批 ¥1,180。", TODOS_B3],
+      ["🏷 请款流程已建立：\n\n📄 流程单号：PAY-2026-0630-088\n💰 请款金额：**¥1,180.00**\n🏢 供应商：恒通电气", TODOS_B3],
+      ["✅ 项目经理审批 · 已通过（09:58）\n🟡 区域财务审批 · **审批中...**", TODOS_B3],
+      ["✅ **申请完成 · 待财务审批通过**", TODOS_B3],
+      ["财务审批通过，已打款 ¥1,180 给恒通电气。", undefined],
+      ["📦 **④ 待采购入库**\n\n供应商已确认接单，正在备货配送。\n📅 **预计 07-01 上午到货**", TODOS_DONE],
+      ["🎉 **维修工单进度总结**\n\n✅ 现场拍照存档，工单已生成\n✅ AI 查库存 · 确认缺电线类设备\n✅ 三方比价完成 · 选定恒通电气 ¥1,180\n✅ 请款流程已审批打款\n✅ 供应商已确认，预计 07-01 上午到货\n🟡 到货后 AI 自动派单 + 通知业主\n\n整个流程您无需手动介入。", undefined],
     ];
 
-    if (stepIndex === 2) {
-      // 气泡 3：识别比价完成，发起请款流程
-      setTimeout(() => {
-        setMessages(prev => [...prev, {
-          id: "rb3_" + Date.now(),
-          role: "agent",
-          content: "三方比价已完成。\n\n现在**发起请款流程** —— 需要财务审批 ¥1,180。",
-          time: new Date().toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit"}),
-          todoList: TODOS_B3,
-        }]);
-      }, 300);
-      setTimeout(() => {
-        setMessages(prev => [...prev, {
-          id: "rb3b_" + Date.now(),
-          role: "agent",
-          content: `🏷 请款流程已建立：\n\n📄 流程单号：PAY-2026-0630-088\n💰 请款金额：**¥1,180.00**\n🏢 供应商：恒通电气\n\n✅ 项目经理审批 · 已通过（09:58）\n🟡 区域财务审批 · **审批中...**`,
-          time: new Date().toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit"}),
-          todoList: TODOS_B3,
-        }]);
-      }, 1400);
-    } else if (stepIndex === 3) {
-      // 气泡 4：申请完成 · 待财务审批通过
-      setTimeout(() => {
-        setMessages(prev => [...prev, {
-          id: "rb4_" + Date.now(),
-          role: "agent",
-          content: "✅ **申请完成 · 待财务审批通过**",
-          time: new Date().toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit"}),
-          todoList: TODOS_B3,
-        }]);
-      }, 300);
-    } else if (stepIndex === 4) {
-      // 气泡 5：④ 待采购入库
-      setTimeout(() => {
-        setMessages(prev => [...prev, {
-          id: "rb5_" + Date.now(),
-          role: "agent",
-          content: "财务审批通过，已打款 ¥1,180 给恒通电气。",
-          time: new Date().toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit"}),
-          todoList: TODOS_DONE,
-        }]);
-      }, 300);
-      setTimeout(() => {
-        setMessages(prev => [...prev, {
-          id: "rb5b_" + Date.now(),
-          role: "agent",
-          content: `📦 **④ 待采购入库**\n\n供应商已确认接单，正在备货配送。\n📅 **预计 07-01 上午到货**`,
-          time: new Date().toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit"}),
-          todoList: TODOS_DONE,
-        }]);
-      }, 1200);
-    } else if (stepIndex === 5) {
-      // 气泡 6：进度总结
-      setTimeout(() => {
-        setMessages(prev => [...prev, {
-          id: "rb6_" + Date.now(),
-          role: "agent",
-          content: `🎉 **维修工单进度总结**\n\n✅ 现场拍照存档，工单已生成\n✅ AI 查库存 · 确认缺电线类设备\n✅ 三方比价完成 · 选定恒通电气 ¥1,180\n✅ 请款流程已审批打款\n✅ 供应商已确认，预计 07-01 上午到货\n🟡 到货后 AI 自动派单 + 通知业主\n\n整个流程您无需手动介入。`,
-          time: new Date().toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit"}),
-        }]);
-      }, 400);
-    }
+    segs.forEach((seg, i) => {
+      setTimeout(() => push(seg[0], seg[1]), 300 + i * 1000);
+    });
   };
 
   const handleAIAssist = (task: Task) => {
@@ -4350,7 +4256,6 @@ export default function App() {
         { label: "③ 请款采购 → 采购到货 → 派单给工程人员", status: "pending" as const },
       ];
       setRepairFlowPending(true);
-      setRepairStepIndex(0);
       setTimeout(() => streamMessage(bubble1Text, undefined, undefined, todoList, false), 400);
     } else {
       setMessages(prev=>[...prev, { id:"tp"+Date.now(), role:"agent", content:"", time:"", typing:true }]);
