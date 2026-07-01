@@ -1443,10 +1443,15 @@ function ChatPanel({ messages, input, setInput, sendMessage, linkedTask, clearLi
                       <div className="flex items-center gap-1.5 px-2.5 py-2" style={{ borderTop:"1px dashed #E8E9EB", backgroundColor:"#FFFBEB" }}>
                         <span className="text-[11px] flex-1 font-medium" style={{ color:DD_ORANGE }}>是否按计划开展？</span>
                         <button onClick={() => {
-                          const now = new Date().toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit"});
-                          setMessages(prev => [...prev, { id:"u"+Date.now(), role:"user", content:"按计划开展", time:now }]);
-                          setRepairFlowPending(false);
-                          startRepairFlow();
+                          console.log("[repair] Adopt clicked");
+                          try {
+                            const now = new Date().toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit"});
+                            setMessages(prev => [...prev, { id:"u"+Date.now(), role:"user", content:"按计划开展", time:now }]);
+                            setRepairFlowPending(false);
+                            startRepairFlow();
+                          } catch (e) {
+                            console.error("[repair] Adopt error:", e);
+                          }
                         }}
                           className="text-[10px] font-bold px-2 py-1 rounded text-white"
                           style={{ backgroundColor:DD_GREEN }}>✓ 按计划展开</button>
