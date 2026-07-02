@@ -5256,6 +5256,168 @@ function ChainDetail({ chain, onBack }:{ chain:typeof ORCH_CHAINS[0]; onBack:()=
           💡 此链路员工感知为零：业主消息进来时，链路自动跑通，仅在任务卡上展示「已为您安排」结果
         </p>
       </div>
+
+      {/* AI 编排日志 */}
+      <ChainAILog chain={chain} />
+    </div>
+  );
+}
+
+// AI 编排日志：原链路是 AI 创建、判断节点触发历史、分支新建/合并记录
+function ChainAILog({ chain }: { chain: any }) {
+  const hasBranch = (chain as any).hasAiBranch;
+  const dec = chain.decisionHits || { yes: chain.branchHits || 0, no: 0 };
+  const aiNodes = hasBranch ? chain.nodes.filter((n: any) => n.branch === "ai_added") : [];
+  // 每条链路一份独立的伪日志（基于 triggers 和 decisionHits 模拟）
+  const createdAt = "06-15 09:23";
+  const creator = "AI Agent · orch-v3.2";
+  const triggerN = dec.yes + dec.no;
+  const previewHit = Math.min(dec.yes, 3); // 预览最近 3 次"是"触发
+  const previewMiss = Math.min(dec.no, 3); // 预览最近 3 次"否"触发
+
+  return (
+    <div className="bg-white rounded-xl p-4 mt-3" style={{ border: "1px solid #E8E9EB" }}>
+      <div className="flex items-center gap-1.5 mb-3">
+        <Sparkles size={13} style={{ color: "#722ED1" }} />
+        <span className="text-sm font-semibold" style={{ color: "#1F2329" }}>AI 编排日志</span>
+        <span className="text-[10px] ml-1 px-1.5 py-0.5 rounded" style={{ backgroundColor: "#F9F0FF", color: "#722ED1" }}>
+          由 AI 自主编排
+        </span>
+        <span className="text-[10px] ml-auto" style={{ color: DD_GRAY }}>仅管理员可见</span>
+      </div>
+
+      {/* 1. 链路创建记录 */}
+      <div className="rounded-lg p-3 mb-2" style={{ backgroundColor: "#F8F9FB", border: "1px dashed #E8E9EB" }}>
+        <div className="flex items-center gap-2 mb-1.5">
+          <Bot size={12} style={{ color: "#722ED1" }} />
+          <span className="text-[11px] font-bold" style={{ color: "#722ED1" }}>链路创建 · AI 智能体自动生成</span>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-[10px]">
+          <div>
+            <div style={{ color: DD_GRAY }}>创建时间</div>
+            <div className="font-medium mt-0.5" style={{ color: "#1F2329" }}>{createdAt}</div>
+          </div>
+          <div>
+            <div style={{ color: DD_GRAY }}>创建者</div>
+            <div className="font-medium mt-0.5" style={{ color: "#1F2329" }}>{creator}</div>
+          </div>
+          <div>
+            <div style={{ color: DD_GRAY }}>初始版本</div>
+            <div className="font-medium mt-0.5" style={{ color: "#1F2329" }}>v1.0（{chain.nodes.length} 节点）</div>
+          </div>
+          <div>
+            <div style={{ color: DD_GRAY }}>触发条件</div>
+            <div className="font-mono mt-0.5 truncate" style={{ color: "#1F2329" }} title={chain.trigger}>{chain.trigger}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. 判断节点触发统计 */}
+      <div className="grid grid-cols-3 gap-2 mb-2">
+        <div className="rounded-lg p-2.5 text-center" style={{ backgroundColor: "#E6F4FF", border: "1px solid #2E6BE630" }}>
+          <div className="text-[10px]" style={{ color: DD_GRAY }}>本月触发</div>
+          <div className="text-xl font-bold mt-1" style={{ color: DD_BLUE }}>{chain.runs || triggerN}</div>
+          <div className="text-[10px]" style={{ color: DD_GRAY }}>次</div>
+        </div>
+        <div className="rounded-lg p-2.5 text-center" style={{ backgroundColor: "#F9F0FF", border: "1px dashed #722ED1" }}>
+          <div className="text-[10px]" style={{ color: "#722ED1" }}>走 AI 分支</div>
+          <div className="text-xl font-bold mt-1" style={{ color: "#722ED1" }}>{dec.yes}</div>
+          <div className="text-[10px]" style={{ color: DD_GRAY }}>次 · {Math.round((dec.yes / Math.max(triggerN, 1)) * 100)}%</div>
+        </div>
+        <div className="rounded-lg p-2.5 text-center" style={{ backgroundColor: "#F6FFED", border: "1px solid #52C41A30" }}>
+          <div className="text-[10px]" style={{ color: "#52C41A" }}>跳过 AI 分支</div>
+          <div className="text-xl font-bold mt-1" style={{ color: "#52C41A" }}>{dec.no}</div>
+          <div className="text-[10px]" style={{ color: DD_GRAY }}>次 · {Math.round((dec.no / Math.max(triggerN, 1)) * 100)}%</div>
+        </div>
+      </div>
+
+      {/* 3. 触发历史时间线 */}
+      <div className="rounded-lg p-3 mb-2" style={{ backgroundColor: "#fff", border: "1px solid #E8E9EB" }}>
+        <div className="flex items-center gap-1.5 mb-2">
+          <Clock size={12} style={{ color: DD_GRAY }} />
+          <span className="text-[11px] font-bold" style={{ color: "#1F2329" }}>最近触发 · 判断节点历史</span>
+          <span className="text-[10px] ml-auto" style={{ color: DD_GRAY }}>仅显示最近 {previewHit + previewMiss} 条</span>
+        </div>
+        <div className="space-y-1.5 max-h-44 overflow-y-auto">
+          {/* "是" 行：触发 AI 分支 */}
+          {Array.from({ length: previewHit }).map((_, i) => {
+            const dates = ["07-01 16:42", "06-29 11:20", "06-25 09:45"];
+            const cases = [
+              { topic: "03栋大堂天花板渗水", verdict: "缺电线类设备" },
+              { topic: "05栋电梯异响", verdict: "缺电梯配件" },
+              { topic: "02栋门禁故障", verdict: "缺读卡器模块" },
+            ][i] || { topic: "报修工单", verdict: "缺配件" };
+            return (
+              <div key={`y${i}`} className="flex items-center gap-2 text-[10px] py-1 px-2 rounded" style={{ backgroundColor: "#F9F0FF" }}>
+                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: "#722ED1" }} />
+                <span className="font-mono shrink-0" style={{ color: DD_GRAY }}>{dates[i] || "06-20"}</span>
+                <span className="flex-1 truncate" style={{ color: "#1F2329" }}>{cases.topic}</span>
+                <span className="text-[9px] shrink-0" style={{ color: "#722ED1" }}>是 · {cases.verdict}</span>
+                <span className="text-[9px] shrink-0 px-1 rounded" style={{ backgroundColor: "#722ED1", color: "#fff" }}>→ AI 分支</span>
+              </div>
+            );
+          })}
+          {/* "否" 行：跳过 AI 分支 */}
+          {Array.from({ length: previewMiss }).map((_, i) => {
+            const dates = ["07-01 14:15", "06-30 10:08", "06-28 17:33"];
+            const cases = [
+              { topic: "01栋水龙头漏水", verdict: "现场有配件" },
+              { topic: "04栋走廊灯坏", verdict: "灯泡通用件" },
+              { topic: "06栋下水道堵塞", verdict: "通渠工具已备" },
+            ][i] || { topic: "报修工单", verdict: "现场有配件" };
+            return (
+              <div key={`n${i}`} className="flex items-center gap-2 text-[10px] py-1 px-2 rounded" style={{ backgroundColor: "#F6FFED" }}>
+                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: "#52C41A" }} />
+                <span className="font-mono shrink-0" style={{ color: DD_GRAY }}>{dates[i] || "06-20"}</span>
+                <span className="flex-1 truncate" style={{ color: "#1F2329" }}>{cases.topic}</span>
+                <span className="text-[9px] shrink-0" style={{ color: "#52C41A" }}>否 · {cases.verdict}</span>
+                <span className="text-[9px] shrink-0 px-1 rounded" style={{ backgroundColor: "#52C41A", color: "#fff" }}>→ 直接派单</span>
+              </div>
+            );
+          })}
+          {dec.yes === 0 && dec.no === 0 && (
+            <div className="text-[10px] text-center py-2" style={{ color: DD_GRAY }}>本月暂无触发</div>
+          )}
+        </div>
+      </div>
+
+      {/* 4. 分支新建/合并记录（仅当链路有 AI 加的支线时显示） */}
+      {hasBranch && aiNodes.length > 0 && (
+        <div className="rounded-lg p-3" style={{ backgroundColor: "#FFFBEB", border: "1px solid #FAAD1430" }}>
+          <div className="flex items-center gap-1.5 mb-2">
+            <GitBranch size={12} style={{ color: DD_ORANGE }} />
+            <span className="text-[11px] font-bold" style={{ color: DD_ORANGE }}>AI 分支演进 · 新建/合并记录</span>
+          </div>
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2 text-[10px]">
+              <Plus size={10} style={{ color: DD_ORANGE }} />
+              <span className="font-mono" style={{ color: DD_GRAY }}>06-22 14:30</span>
+              <span style={{ color: "#1F2329" }}>
+                AI 判断节点触发 <b>第 5 次</b> "是"，累计超阈值 3 次 → <b style={{ color: "#722ED1" }}>新建支线</b>：查库存 → 三方比价 → 请款流程 → 采购到货
+              </span>
+            </div>
+            <div className="flex items-center gap-2 text-[10px]">
+              <Plus size={10} style={{ color: DD_ORANGE }} />
+              <span className="font-mono" style={{ color: DD_GRAY }}>06-15 09:23</span>
+              <span style={{ color: "#1F2329" }}>
+                初始创建：识别报修 → 建工单 → <b>决策：是否采购</b> → AI 派单 → 处理 → 通知
+              </span>
+            </div>
+            <div className="flex items-center gap-2 text-[10px]">
+              <GitBranch size={10} style={{ color: DD_BLUE }} />
+              <span className="font-mono" style={{ color: DD_GRAY }}>06-22 14:30</span>
+              <span style={{ color: "#1F2329" }}>
+                AI 支线终点 <b style={{ color: "#722ED1" }}>汇回主线</b>「AI 派单」节点（采购到货后自动衔接）
+              </span>
+            </div>
+          </div>
+          <div className="mt-2 text-[10px] flex items-center gap-1 px-2 py-1.5 rounded" style={{ backgroundColor: "#fff", border: "1px solid #FAAD1430" }}>
+            <Sparkles size={10} style={{ color: "#722ED1" }} />
+            <span style={{ color: DD_GRAY }}>下次达到触发阈值，AI 将自动评估：</span>
+            <span style={{ color: "#1F2329" }}>是否需要进一步拆分「三方比价」为「资质审查 + 比价」？</span>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
