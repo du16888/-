@@ -1613,21 +1613,37 @@ const AUTO_ITEMS = [
     content:"张伟（工程部）申请年假 2 天，假期 2026-06-30 ~ 2026-07-1，已知会上级李主管。",
     rule:"假期余额充足，符合《考勤与休假管理制度》第 4.2 条；上级已确认接替工作。",
     aiSuggestion:"建议通过",
-    risks:[] },
+    risks:[],
+    flowNodes:[
+      { role:"发起人", name:"张伟", dept:"工程部", status:"done", time:"06-29 09:00", avatar:"张" },
+      { role:"上级审批", name:"李建国", dept:"工程部主管", status:"done", time:"06-29 09:30", avatar:"李", opinion:"接替工作已安排，同意" },
+      { role:"人事复核", name:"王晓琳", dept:"人力资源部", status:"done", time:"06-29 10:15", avatar:"王", opinion:"假期余额充足" },
+      { role:"当前审批", name:"您 · 张副总", dept:"管理层", status:"current", time:"待您审批", avatar:"您", isYou:true },
+    ] },
   // 2 费用报销
   { id:"e1", tag:"费用报销", tagColor:DD_BLUE, icon:"💰", applicant:"陈晓梅", dept:"客服部",
     title:"业主回访餐饮费 ¥320",
     content:"陈晓梅（客服部）报销 06-28 业主回访餐饮费 ¥320，发票齐全，已上传费控系统。",
     rule:"金额在 500 元授权范围内，科目匹配「业务接待费」，附件完整。",
     aiSuggestion:"建议通过",
-    risks:[] },
+    risks:[],
+    flowNodes:[
+      { role:"发起人", name:"陈晓梅", dept:"客服部", status:"done", time:"06-29 11:20", avatar:"陈" },
+      { role:"部门主管", name:"吴敏华", dept:"客服部经理", status:"done", time:"06-29 14:00", avatar:"吴", opinion:"活动真实，符合客户关怀制度" },
+      { role:"当前审批", name:"您 · 张副总", dept:"管理层", status:"current", time:"待您审批", avatar:"您", isYou:true },
+    ] },
   { id:"e2", tag:"费用报销", tagColor:DD_BLUE, icon:"💰", applicant:"王浩天", dept:"工程部",
     title:"维修材料采购 ¥1,840",
     content:"王浩天（工程部）报销 03 栋大堂渗水维修材料采购 ¥1,840，附发票 + 采购单 SRM-2026-0625-007。",
     rule:"金额在 2000 元主管授权内；发票与采购单号一致；科目匹配「维修材料费」。",
     aiSuggestion:"建议通过",
-    risks:[] },
-  // 1 SRM 合同（保持视觉差异：用蓝色"+"标记）
+    risks:[],
+    flowNodes:[
+      { role:"发起人", name:"王浩天", dept:"工程部", status:"done", time:"06-30 08:45", avatar:"王" },
+      { role:"部门主管", name:"李建国", dept:"工程部主管", status:"done", time:"06-30 10:10", avatar:"李", opinion:"已与采购单号核对一致" },
+      { role:"当前审批", name:"您 · 张副总", dept:"管理层", status:"current", time:"待您审批", avatar:"您", isYou:true },
+    ] },
+  // 1 SRM 合同
   { id:"srm1", tag:"SRM合同", tagColor:DD_BLUE, icon:"📄", applicant:"王莉", dept:"客户服务处",
     title:"2026 年车场改造合同 · ¥13,000",
     content:"成都合智商务服务有限公司绵阳分公司（甲方）与 众畅科技有限公司（乙方）签订 2026 年车场改造合同，金额 ¥13,000，工期 2026-04-20 ~ 2026-04-21。",
@@ -1636,6 +1652,13 @@ const AUTO_ITEMS = [
     risks:[
       { no:1, label:"条款冲突", clauses:"第9.1条 × 第9.1.2条", desc:"合同约定总工期 30 天，但实际开工 2026-04-20、竣工 2026-04-21，相差仅 1 天，与约定工期严重冲突。" },
       { no:2, label:"条款冲突", clauses:"第8.1.2.1条 × 第8.1.2.2条", desc:"付款以政府主管部门审批为前提，与 8.1.2.2 条「验收合格后 30 日内付款」互相矛盾，付款时间不明确。" },
+    ],
+    flowNodes:[
+      { role:"发起人", name:"王莉", dept:"客户服务处", status:"done", time:"04-14 10:00", avatar:"王" },
+      { role:"法务初审", name:"赵敏华", dept:"法务部", status:"done", time:"04-14 14:30", avatar:"赵", opinion:"已审核，发现 2 处条款冲突" },
+      { role:"部门主管", name:"黄海峰", dept:"客户服务处经理", status:"done", time:"04-15 09:20", avatar:"黄", opinion:"情况已了解，请管理层决策" },
+      { role:"财务复核", name:"周敏", dept:"财务部", status:"done", time:"04-15 16:00", avatar:"周", opinion:"金额合规，需补条款说明" },
+      { role:"当前审批", name:"您 · 张副总", dept:"管理层", status:"current", time:"待您审批", avatar:"您", isYou:true },
     ] },
 ];
 
@@ -2424,6 +2447,65 @@ function ReviewDetailModal({ item, agentColor, onApprove, onReject, onClose }: {
             <div className="text-[11px] font-bold mb-1.5" style={{ color:DD_BLUE }}>📄 申请内容</div>
             <p className="text-[12px] leading-relaxed" style={{ color:"#1F2329" }}>{item.content}</p>
           </div>
+
+          {/* 流程节点时间线 */}
+          {item.flowNodes && item.flowNodes.length > 0 && (
+            <div className="rounded-lg p-3" style={{ backgroundColor:accentBg, border:"1px solid #B3CCFF" }}>
+              <div className="flex items-center gap-1.5 mb-2.5">
+                <Activity size={12} style={{ color:DD_BLUE }} />
+                <span className="text-[11px] font-bold" style={{ color:DD_BLUE }}>流程节点</span>
+                <span className="text-[10px] ml-auto" style={{ color:DD_GRAY }}>共 {item.flowNodes.length} 个节点</span>
+              </div>
+              <div className="relative">
+                {item.flowNodes.map((node, i) => {
+                  const isLast = i === item.flowNodes.length - 1;
+                  const isCurrent = node.status === "current";
+                  const isDone = node.status === "done";
+                  return (
+                    <div key={i} className="flex gap-2.5 pb-3 last:pb-0 relative">
+                      {/* 节点圆 + 连接线 */}
+                      <div className="flex flex-col items-center shrink-0" style={{ width: 24 }}>
+                        <div
+                          className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0"
+                          style={{
+                            backgroundColor: isCurrent ? DD_BLUE : isDone ? "#fff" : "#fff",
+                            border: `2px solid ${DD_BLUE}`,
+                            color: isCurrent ? "#fff" : DD_BLUE,
+                            boxShadow: isCurrent ? "0 0 0 4px #EBF2FF" : "none",
+                          }}>
+                          {isDone ? "✓" : isCurrent ? i + 1 : i + 1}
+                        </div>
+                        {!isLast && (
+                          <div className="flex-1 w-0.5 mt-0.5" style={{ backgroundColor: "#B3CCFF", minHeight: 24 }} />
+                        )}
+                      </div>
+                      {/* 节点内容 */}
+                      <div className="flex-1 min-w-0 pb-0.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded shrink-0" style={{
+                            backgroundColor: isCurrent ? DD_BLUE : "#fff",
+                            color: isCurrent ? "#fff" : DD_BLUE,
+                            border:`1px solid ${DD_BLUE}`,
+                          }}>{node.role}</span>
+                          <span className="text-[12px] font-semibold truncate" style={{ color:"#1F2329" }}>{node.name}</span>
+                          <span className="text-[10px]" style={{ color:DD_GRAY }}>· {node.dept}</span>
+                        </div>
+                        {node.opinion && (
+                          <div className="text-[11px] mt-1 leading-relaxed px-2 py-1 rounded" style={{ backgroundColor:"#fff", color:"#374151", border:"1px dashed #B3CCFF" }}>
+                            💬 {node.opinion}
+                          </div>
+                        )}
+                        <div className="text-[10px] mt-1" style={{ color: isCurrent ? DD_BLUE : DD_GRAY }}>
+                          {isCurrent && <span className="font-semibold animate-pulse">● </span>}
+                          {node.time}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* AI 关注点分析 */}
           <div className="rounded-lg p-3" style={{ backgroundColor:accentBg, border:"1px solid #B3CCFF" }}>
