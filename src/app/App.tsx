@@ -1618,8 +1618,10 @@ const AUTO_ITEMS = [
       { role:"发起人", name:"张伟", dept:"工程部", status:"done", time:"06-29 09:00", avatar:"张" },
       { role:"上级审批", name:"李建国", dept:"工程部主管", status:"done", time:"06-29 09:30", avatar:"李", opinion:"接替工作已安排，同意" },
       { role:"人事复核", name:"王晓琳", dept:"人力资源部", status:"done", time:"06-29 10:15", avatar:"王", opinion:"假期余额充足" },
-      { role:"当前审批", name:"您 · 张副总", dept:"管理层", status:"current", time:"待您审批", avatar:"您", isYou:true },
-    ] },
+      { role:"当前审批", name:"张明远", dept:"管理层 · 副总", status:"current", time:"待审批", avatar:"张", isYou:true },
+    ],
+    dataSources:["钉钉审批", "考勤系统", "人事系统"],
+    dataSourceNote:"以下分析综合了钉钉审批、考勤系统、人事系统的数据，结合了张伟的剩余年假 5 天（考勤系统）以及部门近期休假密度（人事系统）。" },
   // 2 费用报销
   { id:"e1", tag:"费用报销", tagColor:DD_BLUE, icon:"💰", applicant:"陈晓梅", dept:"客服部",
     title:"业主回访餐饮费 ¥320",
@@ -1630,8 +1632,10 @@ const AUTO_ITEMS = [
     flowNodes:[
       { role:"发起人", name:"陈晓梅", dept:"客服部", status:"done", time:"06-29 11:20", avatar:"陈" },
       { role:"部门主管", name:"吴敏华", dept:"客服部经理", status:"done", time:"06-29 14:00", avatar:"吴", opinion:"活动真实，符合客户关怀制度" },
-      { role:"当前审批", name:"您 · 张副总", dept:"管理层", status:"current", time:"待您审批", avatar:"您", isYou:true },
-    ] },
+      { role:"当前审批", name:"张明远", dept:"管理层 · 副总", status:"current", time:"待审批", avatar:"张", isYou:true },
+    ],
+    dataSources:["钉钉审批", "费控系统", "客户关怀系统"],
+    dataSourceNote:"以下分析综合了钉钉审批、费控系统、客户关怀系统的数据，交叉核对了该业主上季度满意度（客户关怀系统）与本月客户关怀费预算余额（费控系统）。" },
   { id:"e2", tag:"费用报销", tagColor:DD_BLUE, icon:"💰", applicant:"王浩天", dept:"工程部",
     title:"维修材料采购 ¥1,840",
     content:"王浩天（工程部）报销 03 栋大堂渗水维修材料采购 ¥1,840，附发票 + 采购单 SRM-2026-0625-007。",
@@ -1641,8 +1645,10 @@ const AUTO_ITEMS = [
     flowNodes:[
       { role:"发起人", name:"王浩天", dept:"工程部", status:"done", time:"06-30 08:45", avatar:"王" },
       { role:"部门主管", name:"李建国", dept:"工程部主管", status:"done", time:"06-30 10:10", avatar:"李", opinion:"已与采购单号核对一致" },
-      { role:"当前审批", name:"您 · 张副总", dept:"管理层", status:"current", time:"待您审批", avatar:"您", isYou:true },
-    ] },
+      { role:"当前审批", name:"张明远", dept:"管理层 · 副总", status:"current", time:"待审批", avatar:"张", isYou:true },
+    ],
+    dataSources:["库存系统", "SRM 采购", "费控系统", "财务分析"],
+    dataSourceNote:"以下分析综合了库存系统、SRM 采购、费控系统、财务分析的数据：库存系统中该材料 06-25 出库记录已匹配（库存系统），采购单价 1,840 处于历史中位数 ±5%（财务分析），同供应商近 3 月合作 3 次（SRM 采购）。" },
   // 1 SRM 合同
   { id:"srm1", tag:"SRM合同", tagColor:DD_BLUE, icon:"📄", applicant:"王莉", dept:"客户服务处",
     title:"2026 年车场改造合同 · ¥13,000",
@@ -1658,8 +1664,10 @@ const AUTO_ITEMS = [
       { role:"法务初审", name:"赵敏华", dept:"法务部", status:"done", time:"04-14 14:30", avatar:"赵", opinion:"已审核，发现 2 处条款冲突" },
       { role:"部门主管", name:"黄海峰", dept:"客户服务处经理", status:"done", time:"04-15 09:20", avatar:"黄", opinion:"情况已了解，请管理层决策" },
       { role:"财务复核", name:"周敏", dept:"财务部", status:"done", time:"04-15 16:00", avatar:"周", opinion:"金额合规，需补条款说明" },
-      { role:"当前审批", name:"您 · 张副总", dept:"管理层", status:"current", time:"待您审批", avatar:"您", isYou:true },
-    ] },
+      { role:"当前审批", name:"张明远", dept:"管理层 · 副总", status:"current", time:"待审批", avatar:"张", isYou:true },
+    ],
+    dataSources:["SRM 合同库", "法务系统", "供应商资质库", "企业征信"],
+    dataSourceNote:"以下分析综合了 SRM 合同库、法务系统、供应商资质库、企业征信的数据：对比该乙方近 3 年 8 份同类合同（SRM 合同库），法务条款引擎扫描出 2 处冲突（法务系统），乙方资质有效期至 2026-12（供应商资质库），无失信记录（企业征信）。" },
 ];
 
 const SRM_ISSUES = [
@@ -2507,7 +2515,7 @@ function ReviewDetailModal({ item, agentColor, onApprove, onReject, onClose }: {
             </div>
           )}
 
-          {/* AI 关注点分析 - 根据风险等级动态着色 */}
+          {/* AI 关注点分析 - 根据风险等级动态着色 + 数据源按 item 定制 */}
           {(() => {
             const riskCount = item.risks?.length || 0;
             const riskLevel: "low"|"mid"|"high" = riskCount >= 2 ? "high" : riskCount === 1 ? "mid" : "low";
@@ -2516,6 +2524,8 @@ function ReviewDetailModal({ item, agentColor, onApprove, onReject, onClose }: {
               : riskLevel === "mid"
               ? { color:"#D46B08", bg:"#FFF7E6", border:"#FFD591", badge:"中风险", emoji:"🟡" }
               : { color:"#389E0D", bg:"#F6FFED", border:"#B7EB8F", badge:"低风险", emoji:"🟢" };
+            const sources = (item as any).dataSources as string[] | undefined;
+            const sourceNote = (item as any).dataSourceNote as string | undefined;
             return (
               <div className="rounded-lg p-3" style={{ backgroundColor:theme.bg, border:`1px solid ${theme.border}` }}>
                 <div className="flex items-center gap-1.5 mb-1.5">
@@ -2528,9 +2538,18 @@ function ReviewDetailModal({ item, agentColor, onApprove, onReject, onClose }: {
                   <span className="text-[9px] px-1.5 py-0.5 rounded" style={{ backgroundColor:"#fff", color:theme.color, border:`1px solid ${theme.border}` }}>多源数据</span>
                 </div>
                 <p className="text-[10px] mb-2 leading-relaxed" style={{ color:DD_GRAY }}>
-                  以下分析综合了<b style={{ color:theme.color }}> 钉钉审批 · SRM · 费控 · 物业 NC · 考勤系统</b>等业务系统的数据，而非仅基于本表单字段。
+                  {sourceNote || "以下分析综合了多个业务系统的数据，而非仅基于本表单字段。"}
                 </p>
-                <p className="text-[12px] leading-relaxed" style={{ color:"#1F2329" }}>{item.aiSuggestion}</p>
+                {sources && sources.length > 0 && (
+                  <div className="flex items-center gap-1 flex-wrap mb-2">
+                    <span className="text-[10px]" style={{ color:DD_GRAY }}>数据源：</span>
+                    {sources.map(s => (
+                      <span key={s} className="text-[9px] px-1.5 py-0.5 rounded font-medium"
+                        style={{ backgroundColor:"#fff", color:theme.color, border:`1px solid ${theme.border}` }}>{s}</span>
+                    ))}
+                  </div>
+                )}
+                <p className="text-[12px] leading-relaxed font-medium" style={{ color:"#1F2329" }}>{item.aiSuggestion}</p>
                 <p className="text-[10px] mt-2" style={{ color:DD_GRAY }}>依据：{item.rule}</p>
               </div>
             );
