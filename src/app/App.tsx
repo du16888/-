@@ -2507,19 +2507,34 @@ function ReviewDetailModal({ item, agentColor, onApprove, onReject, onClose }: {
             </div>
           )}
 
-          {/* AI 关注点分析 */}
-          <div className="rounded-lg p-3" style={{ backgroundColor:accentBg, border:"1px solid #B3CCFF" }}>
-            <div className="flex items-center gap-1.5 mb-1.5">
-              <Sparkles size={12} style={{ color:DD_BLUE }} />
-              <span className="text-[11px] font-bold" style={{ color:DD_BLUE }}>AI 关注点分析</span>
-              <span className="text-[9px] px-1.5 py-0.5 rounded ml-auto" style={{ backgroundColor:DD_BLUE, color:"#fff" }}>多源数据</span>
-            </div>
-            <p className="text-[10px] mb-2 leading-relaxed" style={{ color:DD_GRAY }}>
-              以下分析综合了<b style={{ color:DD_BLUE }}> 钉钉审批 · SRM · 费控 · 物业 NC · 考勤系统</b>等业务系统的数据，而非仅基于本表单字段。
-            </p>
-            <p className="text-[12px] leading-relaxed" style={{ color:"#1F2329" }}>{item.aiSuggestion}</p>
-            <p className="text-[10px] mt-2" style={{ color:DD_GRAY }}>依据：{item.rule}</p>
-          </div>
+          {/* AI 关注点分析 - 根据风险等级动态着色 */}
+          {(() => {
+            const riskCount = item.risks?.length || 0;
+            const riskLevel: "low"|"mid"|"high" = riskCount >= 2 ? "high" : riskCount === 1 ? "mid" : "low";
+            const theme = riskLevel === "high"
+              ? { color:"#CF1322", bg:"#FFF1F0", border:"#FFA39E", badge:"高风险", emoji:"🔴" }
+              : riskLevel === "mid"
+              ? { color:"#D46B08", bg:"#FFF7E6", border:"#FFD591", badge:"中风险", emoji:"🟡" }
+              : { color:"#389E0D", bg:"#F6FFED", border:"#B7EB8F", badge:"低风险", emoji:"🟢" };
+            return (
+              <div className="rounded-lg p-3" style={{ backgroundColor:theme.bg, border:`1px solid ${theme.border}` }}>
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <Sparkles size={12} style={{ color:theme.color }} />
+                  <span className="text-[11px] font-bold" style={{ color:theme.color }}>AI 关注点分析</span>
+                  <span className="text-[9px] px-1.5 py-0.5 rounded font-medium ml-auto flex items-center gap-0.5"
+                    style={{ backgroundColor:theme.color, color:"#fff" }}>
+                    {theme.emoji} {theme.badge}
+                  </span>
+                  <span className="text-[9px] px-1.5 py-0.5 rounded" style={{ backgroundColor:"#fff", color:theme.color, border:`1px solid ${theme.border}` }}>多源数据</span>
+                </div>
+                <p className="text-[10px] mb-2 leading-relaxed" style={{ color:DD_GRAY }}>
+                  以下分析综合了<b style={{ color:theme.color }}> 钉钉审批 · SRM · 费控 · 物业 NC · 考勤系统</b>等业务系统的数据，而非仅基于本表单字段。
+                </p>
+                <p className="text-[12px] leading-relaxed" style={{ color:"#1F2329" }}>{item.aiSuggestion}</p>
+                <p className="text-[10px] mt-2" style={{ color:DD_GRAY }}>依据：{item.rule}</p>
+              </div>
+            );
+          })()}
 
           {/* 风险（仅 SRM 等高风险项）：保持蓝色，⚠ 前缀标识 */}
           {isRisky && (
