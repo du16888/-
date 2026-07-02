@@ -1608,27 +1608,27 @@ type ReviewBubble = "scan_summary" | "items_list" | `decided_${string}_approved`
 
 const AUTO_ITEMS = [
   // 1 请假
-  { id:"l1", tag:"请假申请", tagColor:"#13C2C2", icon:"📅", applicant:"张伟", dept:"工程部",
+  { id:"l1", tag:"请假申请", tagColor:DD_BLUE, icon:"📅", applicant:"张伟", dept:"工程部",
     title:"年假申请 · 2天",
     content:"张伟（工程部）申请年假 2 天，假期 2026-06-30 ~ 2026-07-1，已知会上级李主管。",
     rule:"假期余额充足，符合《考勤与休假管理制度》第 4.2 条；上级已确认接替工作。",
     aiSuggestion:"建议通过",
     risks:[] },
   // 2 费用报销
-  { id:"e1", tag:"费用报销", tagColor:"#722ED1", icon:"💰", applicant:"陈晓梅", dept:"客服部",
+  { id:"e1", tag:"费用报销", tagColor:DD_BLUE, icon:"💰", applicant:"陈晓梅", dept:"客服部",
     title:"业主回访餐饮费 ¥320",
     content:"陈晓梅（客服部）报销 06-28 业主回访餐饮费 ¥320，发票齐全，已上传费控系统。",
     rule:"金额在 500 元授权范围内，科目匹配「业务接待费」，附件完整。",
     aiSuggestion:"建议通过",
     risks:[] },
-  { id:"e2", tag:"费用报销", tagColor:"#722ED1", icon:"💰", applicant:"王浩天", dept:"工程部",
+  { id:"e2", tag:"费用报销", tagColor:DD_BLUE, icon:"💰", applicant:"王浩天", dept:"工程部",
     title:"维修材料采购 ¥1,840",
     content:"王浩天（工程部）报销 03 栋大堂渗水维修材料采购 ¥1,840，附发票 + 采购单 SRM-2026-0625-007。",
     rule:"金额在 2000 元主管授权内；发票与采购单号一致；科目匹配「维修材料费」。",
     aiSuggestion:"建议通过",
     risks:[] },
-  // 1 SRM 合同
-  { id:"srm1", tag:"SRM合同", tagColor:DD_ORANGE, icon:"📄", applicant:"王莉", dept:"客户服务处",
+  // 1 SRM 合同（保持视觉差异：用蓝色"+"标记）
+  { id:"srm1", tag:"SRM合同", tagColor:DD_BLUE, icon:"📄", applicant:"王莉", dept:"客户服务处",
     title:"2026 年车场改造合同 · ¥13,000",
     content:"成都合智商务服务有限公司绵阳分公司（甲方）与 众畅科技有限公司（乙方）签订 2026 年车场改造合同，金额 ¥13,000，工期 2026-04-20 ~ 2026-04-21。",
     rule:"AI 法务智能分析发现 2 处条款冲突，需人工审核后处理。",
@@ -2247,20 +2247,20 @@ function OrderReviewAgentPanel({ onBack }: { onBack: () => void }) {
             <div className="flex-1">
               <div className="rounded-2xl rounded-tl-sm px-3 py-3 text-xs space-y-2" style={{ backgroundColor:"#fff", border:"1px solid #E8E9EB" }}>
                 <p className="leading-relaxed" style={{ color:"#1F2329" }}>
-                  已完成对您的<b>待审批事项</b>进行全面扫描，本次共计 <b style={{ color:agentColor }}>4 项</b>，涉及 3 个业务系统：
+                  已完成对您的<b>待审批事项</b>进行全面扫描，本次共计 <b style={{ color:DD_BLUE }}>4 项</b>，分布如下：
                 </p>
                 <div className="grid grid-cols-3 gap-1.5 pt-1">
-                  <div className="rounded-lg px-2 py-1.5 text-center" style={{ backgroundColor:"#E6FFFB", border:"1px solid #87E8DE" }}>
-                    <div className="text-base font-bold" style={{ color:"#13C2C2" }}>1</div>
-                    <div className="text-[10px] mt-0.5" style={{ color:"#08979C" }}>请假申请</div>
+                  <div className="rounded-lg px-2 py-1.5 text-center" style={{ backgroundColor:"#EBF2FF", border:"1px solid #B3CCFF" }}>
+                    <div className="text-base font-bold" style={{ color:DD_BLUE }}>1</div>
+                    <div className="text-[10px] mt-0.5" style={{ color:DD_BLUE }}>请假申请</div>
                   </div>
-                  <div className="rounded-lg px-2 py-1.5 text-center" style={{ backgroundColor:"#F9F0FF", border:"1px solid #D3ADF7" }}>
-                    <div className="text-base font-bold" style={{ color:"#722ED1" }}>2</div>
-                    <div className="text-[10px] mt-0.5" style={{ color:"#531DAB" }}>费用报销</div>
+                  <div className="rounded-lg px-2 py-1.5 text-center" style={{ backgroundColor:"#EBF2FF", border:"1px solid #B3CCFF" }}>
+                    <div className="text-base font-bold" style={{ color:DD_BLUE }}>2</div>
+                    <div className="text-[10px] mt-0.5" style={{ color:DD_BLUE }}>费用报销</div>
                   </div>
-                  <div className="rounded-lg px-2 py-1.5 text-center" style={{ backgroundColor:"#FFF7E6", border:"1px solid #FFD591" }}>
-                    <div className="text-base font-bold" style={{ color:DD_ORANGE }}>1</div>
-                    <div className="text-[10px] mt-0.5" style={{ color:"#D46B08" }}>SRM 合同</div>
+                  <div className="rounded-lg px-2 py-1.5 text-center" style={{ backgroundColor:"#EBF2FF", border:"1px solid #B3CCFF" }}>
+                    <div className="text-base font-bold" style={{ color:DD_BLUE }}>1</div>
+                    <div className="text-[10px] mt-0.5" style={{ color:DD_BLUE }}>SRM 合同</div>
                   </div>
                 </div>
                 <p className="text-[10px] pt-1" style={{ color:DD_GRAY }}>扫描完成于 {new Date().toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit"})} · 共耗时 1.2s</p>
@@ -2283,23 +2283,21 @@ function OrderReviewAgentPanel({ onBack }: { onBack: () => void }) {
                   {AUTO_ITEMS.map(item => {
                     const decided = decidedIds[item.id];
                     const isRisky = item.risks && item.risks.length > 0;
-                    const statusColor = decided ? (decided === "approved" ? agentColor : DD_RED) : (isRisky ? DD_ORANGE : agentColor);
-                    const statusBg = decided ? (decided === "approved" ? "#F6FFED" : "#FFF1F0") : (isRisky ? "#FFF7E6" : "#F6FFED");
                     const statusLabel = decided
                       ? (decided === "approved" ? "已通过" : "已退回")
-                      : (isRisky ? "待人工确认" : "AI 建议通过");
+                      : (isRisky ? "⚠ 待确认" : "AI 建议通过");
                     return (
                       <div key={item.id} className="flex items-center gap-2 px-3 py-2.5" style={{ backgroundColor:"#fff" }}>
-                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded shrink-0" style={{ backgroundColor: item.tagColor + "18", color: item.tagColor }}>
+                        <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded shrink-0" style={{ backgroundColor:"#EBF2FF", color:DD_BLUE }}>
                           {item.tag}
                         </span>
                         <span className="font-medium text-[11px] shrink-0" style={{ color:"#1F2329" }}>{item.applicant}</span>
                         <span className="flex-1 text-[11px] truncate" style={{ color:DD_GRAY }}>{item.title}</span>
-                        <span className="text-[9px] font-medium px-1.5 py-0.5 rounded shrink-0" style={{ backgroundColor:statusBg, color:statusColor }}>{statusLabel}</span>
+                        <span className="text-[9px] font-medium px-1.5 py-0.5 rounded shrink-0" style={{ backgroundColor:"#EBF2FF", color:DD_BLUE }}>{statusLabel}</span>
                         <button
                           onClick={() => openItem(item)}
                           className="shrink-0 text-[10px] font-semibold px-2.5 py-1 rounded-lg flex items-center gap-1"
-                          style={{ backgroundColor: agentColor + "15", color: agentColor, border: `1px solid ${agentColor}40` }}>
+                          style={{ backgroundColor:"#EBF2FF", color:DD_BLUE, border:"1px solid #B3CCFF" }}>
                           查看 <ChevronRight size={10} />
                         </button>
                       </div>
@@ -2399,16 +2397,17 @@ function ReviewDetailModal({ item, agentColor, onApprove, onReject, onClose }: {
   onApprove: () => void; onReject: () => void; onClose: () => void;
 }) {
   const isRisky = item.risks && item.risks.length > 0;
-  const accentColor = isRisky ? DD_ORANGE : agentColor;
-  const accentBg = isRisky ? "#FFF7E6" : "#F6FFED";
+  // 整面板统一 EBF2FF / DD_BLUE；SRM 风险块也保持蓝色，仅用"⚠"前缀标识风险
+  const accentColor = DD_BLUE;
+  const accentBg = "#EBF2FF";
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3" style={{ backgroundColor:"rgba(0,0,0,0.45)" }} onClick={onClose}>
       <div
         className="rounded-2xl overflow-hidden flex flex-col"
-        style={{ width:"100%", maxWidth:480, maxHeight:"90vh", backgroundColor:"#fff" }}
+        style={{ width:"100%", maxWidth:480, maxHeight:"90vh", backgroundColor:"#fff", border:"1px solid #B3CCFF" }}
         onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div className="flex items-center gap-2 px-4 py-3 shrink-0" style={{ backgroundColor:accentColor }}>
+        <div className="flex items-center gap-2 px-4 py-3 shrink-0" style={{ backgroundColor:DD_BLUE }}>
           <span className="text-base">{item.icon}</span>
           <div className="flex-1 min-w-0">
             <div className="text-sm font-bold text-white truncate">{item.title}</div>
@@ -2421,35 +2420,39 @@ function ReviewDetailModal({ item, agentColor, onApprove, onReject, onClose }: {
         {/* Body */}
         <div className="flex-1 overflow-y-auto p-4 space-y-3">
           {/* 申请内容 */}
-          <div className="rounded-lg p-3" style={{ backgroundColor:"#F8F9FB", border:"1px solid #E8E9EB" }}>
-            <div className="text-[11px] font-bold mb-1.5" style={{ color:"#1F2329" }}>📄 申请内容</div>
-            <p className="text-[12px] leading-relaxed" style={{ color:"#374151" }}>{item.content}</p>
+          <div className="rounded-lg p-3" style={{ backgroundColor:accentBg, border:"1px solid #B3CCFF" }}>
+            <div className="text-[11px] font-bold mb-1.5" style={{ color:DD_BLUE }}>📄 申请内容</div>
+            <p className="text-[12px] leading-relaxed" style={{ color:"#1F2329" }}>{item.content}</p>
           </div>
 
-          {/* AI 建议 */}
-          <div className="rounded-lg p-3" style={{ backgroundColor:accentBg, border:`1px solid ${accentColor}40` }}>
+          {/* AI 关注点分析 */}
+          <div className="rounded-lg p-3" style={{ backgroundColor:accentBg, border:"1px solid #B3CCFF" }}>
             <div className="flex items-center gap-1.5 mb-1.5">
-              <Sparkles size={12} style={{ color:accentColor }} />
-              <span className="text-[11px] font-bold" style={{ color:accentColor }}>AI 建议</span>
+              <Sparkles size={12} style={{ color:DD_BLUE }} />
+              <span className="text-[11px] font-bold" style={{ color:DD_BLUE }}>AI 关注点分析</span>
+              <span className="text-[9px] px-1.5 py-0.5 rounded ml-auto" style={{ backgroundColor:DD_BLUE, color:"#fff" }}>多源数据</span>
             </div>
+            <p className="text-[10px] mb-2 leading-relaxed" style={{ color:DD_GRAY }}>
+              以下分析综合了<b style={{ color:DD_BLUE }}> 钉钉审批 · SRM · 费控 · 物业 NC · 考勤系统</b>等业务系统的数据，而非仅基于本表单字段。
+            </p>
             <p className="text-[12px] leading-relaxed" style={{ color:"#1F2329" }}>{item.aiSuggestion}</p>
             <p className="text-[10px] mt-2" style={{ color:DD_GRAY }}>依据：{item.rule}</p>
           </div>
 
-          {/* 风险（仅 SRM 等高风险项） */}
+          {/* 风险（仅 SRM 等高风险项）：保持蓝色，⚠ 前缀标识 */}
           {isRisky && (
-            <div className="rounded-lg overflow-hidden" style={{ border:`1px solid ${DD_ORANGE}50` }}>
-              <div className="px-3 py-2 flex items-center gap-1.5" style={{ backgroundColor:DD_ORANGE }}>
+            <div className="rounded-lg overflow-hidden" style={{ border:"1px solid #B3CCFF" }}>
+              <div className="px-3 py-2 flex items-center gap-1.5" style={{ backgroundColor:DD_BLUE }}>
                 <AlertCircle size={12} className="text-white shrink-0" />
-                <span className="text-[11px] font-bold text-white">风险提示 · AI 发现 {item.risks.length} 处条款冲突</span>
+                <span className="text-[11px] font-bold text-white">⚠ 风险提示 · AI 发现 {item.risks.length} 处条款冲突</span>
               </div>
-              <div className="bg-white divide-y" style={{ borderColor:"#FFF7E6" }}>
+              <div className="bg-white divide-y" style={{ borderColor:"#EBF2FF" }}>
                 {item.risks!.map(issue => (
                   <div key={issue.no} className="px-3 py-2.5">
                     <div className="flex items-center gap-1.5 mb-1">
-                      <span className="text-[10px] font-bold w-4.5 h-4.5 rounded-full flex items-center justify-center text-white shrink-0" style={{ backgroundColor:DD_ORANGE }}>{issue.no}</span>
-                      <span className="text-[11px] font-semibold" style={{ color:DD_ORANGE }}>{issue.label}</span>
-                      <span className="text-[10px] font-medium px-1.5 py-0.5 rounded ml-auto" style={{ backgroundColor:"#FFF7E6", color:DD_ORANGE }}>{issue.clauses}</span>
+                      <span className="text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center text-white shrink-0" style={{ backgroundColor:DD_BLUE }}>{issue.no}</span>
+                      <span className="text-[11px] font-semibold" style={{ color:DD_BLUE }}>{issue.label}</span>
+                      <span className="text-[10px] font-medium px-1.5 py-0.5 rounded ml-auto" style={{ backgroundColor:"#EBF2FF", color:DD_BLUE }}>{issue.clauses}</span>
                     </div>
                     <p className="text-[11px] leading-relaxed ml-6" style={{ color:"#374151" }}>{issue.desc}</p>
                   </div>
@@ -2459,15 +2462,15 @@ function ReviewDetailModal({ item, agentColor, onApprove, onReject, onClose }: {
           )}
         </div>
         {/* Footer buttons */}
-        <div className="shrink-0 grid grid-cols-2 gap-2 p-3 border-t" style={{ borderColor:"#E8E9EB", backgroundColor:"#FAFBFC" }}>
+        <div className="shrink-0 grid grid-cols-2 gap-2 p-3 border-t" style={{ borderColor:"#EBF2FF", backgroundColor:"#FAFBFC" }}>
           <button onClick={onReject}
             className="py-2.5 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5"
-            style={{ backgroundColor:"#fff", color:DD_RED, border:`1px solid ${DD_RED}40` }}>
+            style={{ backgroundColor:"#fff", color:DD_BLUE, border:"1px solid #B3CCFF" }}>
             <X size={12} /> 不同意
           </button>
           <button onClick={onApprove}
             className="py-2.5 rounded-xl text-xs font-semibold text-white flex items-center justify-center gap-1.5"
-            style={{ backgroundColor:agentColor }}>
+            style={{ backgroundColor:DD_BLUE }}>
             <CheckCircle2 size={12} /> 同意
           </button>
         </div>
