@@ -1413,7 +1413,7 @@ function ChatPanel({ messages, input, setInput, sendMessage, linkedTask, clearLi
                 }}>
                 {msg.typing
                   ? <div className="flex gap-1 items-center py-0.5">{[0,1,2].map(i=><div key={i} className="w-1.5 h-1.5 rounded-full animate-bounce" style={{ backgroundColor:DD_GRAY, animationDelay:`${i*0.15}s` }} />)}</div>
-                  : <div className="whitespace-pre-wrap">{msg.thinking && <span className="mr-1">🔍</span>}{msg.content}</div>
+                  : <div className="whitespace-pre-wrap">{msg.thinking && <span className="mr-1">🔍</span>}<span dangerouslySetInnerHTML={{ __html: msg.content }} /></div>
                 }
                 {/* 实时 todo 清单（如有） */}
                 {msg.todoList && msg.todoList.length > 0 && !msg.typing && (
