@@ -5329,10 +5329,14 @@ function buildFlowFromChain(chain: any): { nodes: Node[]; edges: Edge[] } {
   const allNodes: any[] = chain.nodes;
   const decisionIdx = allNodes.findIndex((n: any) => n.type === "decision");
   const hasBranch = (chain as any).hasAiBranch;
+  // AI 支线节点 = branch === "ai_added" 的项
   const aiNodes = hasBranch ? allNodes.filter((n: any) => n.branch === "ai_added") : [];
-  const beforeDec = hasBranch && decisionIdx >= 0 ? allNodes.slice(0, decisionIdx) : allNodes;
+  // 主线 = branch === "main" 或 decision 本身，剔除 ai_added
+  const mainNodes = allNodes.filter((n: any) => n.branch !== "ai_added");
   const decisionNode = hasBranch && decisionIdx >= 0 ? allNodes[decisionIdx] : null;
-  const afterDec = hasBranch && decisionIdx >= 0 ? allNodes.slice(decisionIdx + 1) : [];
+  // 主线分两段：决策前（识别/建工单）和决策后（AI 派单/工单处理/通知）
+  const beforeDec = decisionNode ? mainNodes.slice(0, mainNodes.indexOf(decisionNode)) : [];
+  const afterDec = decisionNode ? mainNodes.slice(mainNodes.indexOf(decisionNode) + 1) : mainNodes;
 
   const rfNodes: Node[] = [];
   const rfEdges: Edge[] = [];
